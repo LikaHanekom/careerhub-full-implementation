@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import JobCard from "@/components/JobCard";
 import { JobListing } from "../types";
 import { cn } from "@/lib/utils";
+import { JobListSkeleton } from "@/components/JobCardSkeleton"; // Import skeleton
 
 // Mock DATA
 const jobs: JobListing[] = [
@@ -85,11 +86,12 @@ const jobs: JobListing[] = [
     applicantCount: 0,
     isAvailable: true,
   },
+  
 ];
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
+  const isLoading = true;
   // Restore selection from sessionStorage on mount
   useEffect(() => {
     const savedId = sessionStorage.getItem('selectedJobId');
@@ -111,11 +113,26 @@ export default function Home() {
     }
   }, [selectedId]);
 
+
+ if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4">
+        {/* Added w-full and max-w-6xl to match your grid's requirements */}
+        <main className="mx-auto max-w-6xl w-full">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            Job Openings
+          </h1>
+          <JobListSkeleton />
+        </main>
+      </div>
+    );
+  }
+
   const selectedJob = jobs.find((j) => j.id === selectedId);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4">
-      <main className="mx-auto max-w-3xl space-y-4">
+      <main className="mx-auto max-w-6xl w-full space-y-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Job Openings
         </h1>
@@ -135,14 +152,16 @@ export default function Home() {
           </div>
         )}
 
-        {jobs.map((job) => (
-          <JobCard
-            key={job.id}
-            job={job}
-            isSelected={selectedId === job.id}
-            onSelect={() => setSelectedId(selectedId === job.id ? null : job.id)}
-          />
-        ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              isSelected={selectedId === job.id}
+              onSelect={() => setSelectedId(selectedId === job.id ? null : job.id)}
+            />
+          ))}
+        </div>
       </main>
     </div>
   );
