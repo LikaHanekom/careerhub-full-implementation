@@ -49,7 +49,7 @@ export async function GET() {
       title: "Junior Technical Support",
       company: "University of the Free State",
       location: "Bloemfontein",
-      employmentType: "Internship",
+      employmentType: "Part-Time",
       salaryMin: 12000,
       salaryMax: 18000,
       postedAt: "2026-06-16T14:30:00Z",
