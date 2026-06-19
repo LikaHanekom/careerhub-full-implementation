@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "n7c/8zQ5Jcs=",
+  "dgSpecHash": "FnG1QQN+qtE=",
   "success": true,
-  "projectFilePath": "C:\\Users\\alika\\OneDrive\\Documents\\Alika IT\\Bitcube\\CareerHub\\API.Tests\\API.Tests.csproj",
+  "projectFilePath": "C:\\Users\\alika\\OneDrive\\Documents\\Alika IT\\Bitcube\\Career-Hub\\API.Tests\\API.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\alika\\.nuget\\packages\\asp.versioning.abstractions\\10.0.0\\asp.versioning.abstractions.10.0.0.nupkg.sha512",
     "C:\\Users\\alika\\.nuget\\packages\\asp.versioning.http\\10.0.0\\asp.versioning.http.10.0.0.nupkg.sha512",
@@ -120,9 +120,9 @@
       "code": "NU1608",
       "level": "Warning",
       "message": "Detected package version outside of dependency constraint: AutoMapper.Extensions.Microsoft.DependencyInjection 12.0.1 requires AutoMapper (= 12.0.1) but version AutoMapper 16.1.1 was resolved.",
-      "projectPath": "C:\\Users\\alika\\OneDrive\\Documents\\Alika IT\\Bitcube\\CareerHub\\API.Tests\\API.Tests.csproj",
+      "projectPath": "C:\\Users\\alika\\OneDrive\\Documents\\Alika IT\\Bitcube\\Career-Hub\\API.Tests\\API.Tests.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\alika\\OneDrive\\Documents\\Alika IT\\Bitcube\\CareerHub\\API.Tests\\API.Tests.csproj",
+      "filePath": "C:\\Users\\alika\\OneDrive\\Documents\\Alika IT\\Bitcube\\Career-Hub\\API.Tests\\API.Tests.csproj",
       "libraryId": "AutoMapper",
       "targetGraphs": [
         "net10.0"

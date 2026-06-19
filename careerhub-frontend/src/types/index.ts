@@ -1,4 +1,4 @@
-export type EmploymentType = "Full-Time" | "Part-Time" | "Contract" | "Internship" | "Freelance";
+export type EmploymentType = "Full-Time" | "Part-Time" | "Contract" | "Internship" ;
 //defines the shape of the data 
 export interface JobListing {
     id: string; // GUID format
