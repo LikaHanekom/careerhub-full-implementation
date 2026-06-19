@@ -1,106 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from '@tanstack/react-query';
+import { fetchJobs } from '@/lib/api'; 
 import JobCard from "@/components/JobCard";
-import { JobListing } from "../types";
 import { cn } from "@/lib/utils";
 import { JobListSkeleton } from "@/components/JobCardSkeleton"; // Import skeleton
 
-// Mock DATA
-const jobs: JobListing[] = [
-  {
-    id: "1",
-    title: "Frontend Engineer",
-    company: "Tech Solutions",
-    location: "Cape Town",
-    employmentType: "Full-Time",
-    salaryMin: 50000,
-    salaryMax: 70000,
-    postedAt: "2026-06-15T08:00:00Z",
-    isActive: true,
-    applicantCount: 5,
-    isAvailable: true,
-  },
-  {
-    id: "2",
-    title: "Junior Designer",
-    company: "Creative Agency",
-    location: "Johannesburg",
-    employmentType: "Internship",
-    salaryMin: 12000,
-    salaryMax: 18000,
-    postedAt: "2026-06-16T14:30:00Z",
-    isActive: false,
-    applicantCount: 0,
-    isAvailable: true,
-  },
-  {
-    id: "3",
-    title: "Junior Software Engineer",
-    company: "BitCube",
-    location: "Bloemfontein",
-    employmentType: "Internship",
-    salaryMin: 12000,
-    salaryMax: 18000,
-    postedAt: "2026-06-16T14:30:00Z",
-    isActive: true,
-    applicantCount: 0,
-    isAvailable: true,
-  },
-  {
-    id: "4",
-    title: "Junior Technical Support",
-    company: "University of the Free State",
-    location: "Bloemfontein",
-    employmentType: "Internship",
-    salaryMin: 12000,
-    salaryMax: 18000,
-    postedAt: "2026-06-16T14:30:00Z",
-    isActive: false,
-    applicantCount: 0,
-    isAvailable: true,
-  },
-  {
-    id: "5",
-    title: "Front End Developer",
-    company: "Absa Bank",
-    location: "CapeTown",
-    employmentType: "Full-Time",
-    salaryMin: 12000,
-    salaryMax: 18000,
-    postedAt: "2026-06-16T14:30:00Z",
-    isActive: false,
-    applicantCount: 0,
-    isAvailable: true,
-  },
-  {
-    id: "6",
-    title: "Senior Software Engineer",
-    company: "Standard Bank",
-    location: "Johannesburg",
-    employmentType: "Contract",
-    salaryMin: 12000,
-    salaryMax: 18000,
-    postedAt: "2026-05-16T14:30:00Z",
-    isActive: true,
-    applicantCount: 0,
-    isAvailable: true,
-  },
-  
-];
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  //Use useQuery instead of hardcoded jobs array
+
+  const {
+    data:jobs,
+    isPending,
+    isError,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: fetchJobs,
+    staleTime: 0,
+  })
+
   const isLoading = true;
   // Restore selection from sessionStorage on mount
   useEffect(() => {
     const savedId = sessionStorage.getItem('selectedJobId');
     if (savedId) {
       // Only restore if job still exists in the list
-      const jobExists = jobs.some(job => job.id === savedId);
-      if (jobExists) {
         setSelectedId(savedId);
-      }
     }
   }, []); 
 
@@ -113,21 +44,33 @@ export default function Home() {
     }
   }, [selectedId]);
 
+  //Handling Error
+  if (isError) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-600 mb-4">Error loading jobs: {error.message}</p>
+        <button 
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
- if (isLoading) {
+  //Handle Loading State
+
+ if (isPending) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4">
-        {/* Added w-full and max-w-6xl to match your grid's requirements */}
         <main className="mx-auto max-w-6xl w-full">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-            Job Openings
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Job Openings</h1>
           <JobListSkeleton />
         </main>
       </div>
     );
   }
-
   const selectedJob = jobs.find((j) => j.id === selectedId);
 
   return (
@@ -139,9 +82,7 @@ export default function Home() {
 
         {selectedJob && (
           <div className={cn(
-            "border rounded-lg p-6 shadow-sm",
-            "bg-white dark:bg-gray-800",
-            "border-blue-200 dark:border-gray-700"
+            "border rounded-lg p-6 shadow-sm bg-white dark:bg-gray-800 border-blue-200 dark:border-gray-700"
           )}>
             <h2 className="text-lg font-bold text-blue-900 dark:text-blue-300">
               Selected Opportunity
@@ -153,7 +94,7 @@ export default function Home() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.map((job) => (
+          {jobs?.map((job) => (
             <JobCard
               key={job.id}
               job={job}
