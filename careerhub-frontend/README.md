@@ -244,3 +244,56 @@ Both components make separate network requests for the same data, causing unnece
     No automatic refetch on tab focus
 
     User sees: Potentially outdated data forever until manual refresh
+
+# README UPDATES -Assignment 1.3 #
+1. What does TanStack Query Manage:
+  - isLoading: Boolean that tracks if data is being fetched (would need useState + manual set)
+  - isError: Boolean that tracks if fetch failed (would need useState + try/catch)
+  - error: The error object if fetch failed (would need useState + manual set)
+  - data: The fetched data (would need useState + manual set in useEffect)
+  - isFetching: Background refetch status (would need useState + manual tracking)
+  - refetch: Function to retry failed queries (would need custom function implementation)
+  - Background refetching: on window focus, network reconnect (would need window event listeners)
+  - Stale time management: Automatic cache invalidation (would need manual timer logic)
+  - Query deduplication: Multiple components share one request (would need complex caching)
+
+2. QueryKey Design Decision:
+  ["jobs"] uniquely identifies the "all jobs" dataset. If filtering by location:
+
+  - Bloemfontein: ["jobs", { location: "Bloemfontein" }]
+  - CapeTown: ["jobs", { location: "CapeTown" }]
+
+  The filter must be in the key because the cached data differs for each filter. 
+  Without the filter in the key, queries would share cached data incorrectly.
+
+3. Skeleton Design Rationale
+  JobCardSkeleton matches JobCard's exact structure. This prevents 
+  layout shift - when real data loads, the page doesn't jump because the skeleton 
+  held the same space as the real content.
+
+  A generic spinner would show a small rotating indicator, then the entire page 
+  would need to render from empty, causing jarring layout shifts as content appears.
+
+
+4. Gate
+  PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> 
+   npm run dev
+
+> careerhub-frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.101.109:3000
+- Environments: .env.local
+✓ Ready in 1240ms
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
+
+
+ GET / 200 in 1028ms (next.js: 474ms, application-code: 554ms)
+ GET /api/jobs 200 in 225ms (next.js: 186ms, application-code: 38ms)
