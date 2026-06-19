@@ -189,3 +189,58 @@ PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\careerhub-frontend> npm ru
 - Network:       http://172.20.144.1:3000
 ✓ Ready in 1575ms
 ```
+
+
+# Assignment 1.3 #
+## Question 1: Four things useQuery gives you that manual useEffect + useState + fetch doesn't ##
+1. Background refetching 
+
+If user switches tabs and returns, they'd see stale data until they manually refresh. With useEffect([]), data never updates after initial load.
+
+2. Automatic caching and deduplication
+ Multiple components fetching the same data would make separate network requests, wasting bandwidth and slowing the app.
+
+3. Retry logic on failure
+
+A temporary network glitch would show an error state immediately, requiring manual retry. Users would see errors unnecessarily.
+
+4. Loading and error state management
+
+You'd need to manually track isLoading, isError, error variables and update them in useEffect. Edge cases like race conditions could cause bugs.
+
+## Question 2: The queryKey contract ##
+TanStack Query uses the queryKey as a unique identifier for the cached data. It's like a database primary key - when you have ["jobs"], that's the "table name" and any filters become additional "column values."
+
+Failure:
+
+Two components sharing a key they shouldn't:
+
+Component A fetches all jobs → uses ["jobs"]
+
+- Component B fetches only active jobs → uses ["jobs"] (should be ["jobs", { active: true }])
+
+Component B shows all jobs instead of just active ones because it's using Component A's cached data
+
+Component using unique key when it should share:
+
+- Two identical components each use their own instance key like ["jobs", componentId]
+
+Both components make separate network requests for the same data, causing unnecessary loading delays
+
+## Question 3: Why fetch doesn't throw on HTTP errors ##
+- fetch() only rejects on network errors (DNS failure, connection refused, etc.) HTTP errors (404, 500, etc.) are still successful network requests - the server responded, just with an error status. Without the res.ok check, TanStack Query receives a Response object with ok: false. It would treat this as successful data and try to parse JSON, likely failing. User would see a cryptic error like "Unexpected token < in JSON at position 0" or nothing renders.
+
+## Question 4: Stale-while-revalidate ##
+- Default behavior (staleTime: 0):
+
+    When user returns to tab, TanStack Query shows existing cached  data immediately
+
+    Then triggers a background refetch
+
+    User sees: Data appears instantly, then updates if changed
+
+- With useEffect([]) and no background updates:
+
+    No automatic refetch on tab focus
+
+    User sees: Potentially outdated data forever until manual refresh
