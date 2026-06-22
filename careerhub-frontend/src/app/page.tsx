@@ -20,8 +20,8 @@ export default function Home() {
     error,
     refetch
   } = useQuery({
-    queryKey: ['jobs'],
-    queryFn: fetchJobs,
+    queryKey: ['jobs'], // Unique key to cache the results
+    queryFn: fetchJobs, //fetch data
     staleTime: 0,
   })
 
