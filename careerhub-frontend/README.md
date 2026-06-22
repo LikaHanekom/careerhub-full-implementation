@@ -297,3 +297,143 @@ Both components make separate network requests for the same data, causing unnece
 
  GET / 200 in 1028ms (next.js: 474ms, application-code: 554ms)
  GET /api/jobs 200 in 225ms (next.js: 186ms, application-code: 38ms)
+
+ # Assignment 1.4 #
+ ## Pre Coding Questions ##
+ 1. Why @hookform/resolvers is a separate package
+
+    - What problem it solves: Library maintainers can update RHF or Zod independently without breaking each other. Allows RHF to support multiple validation libraries (Zod, Yup, Joi, etc.). Prevents tight coupling between RHF and any specific validation library
+
+    - What zodResolver does at runtime: 
+    Receives: A Zod schema from RHF
+    Calls: schema.safeParse() on the form data
+    Returns: An object with values (validated data) and errors (validation errors)
+
+    ```
+    typescript
+    (schema: ZodSchema) => (values: any) => {
+      const result = schema.safeParse(values);
+      if (result.success) {
+        return { values: result.data, errors: {} };
+      }
+      return { values: {}, errors: formatZodErrors(result.error) };
+    }
+    ```
+
+2. The number input problem
+
+  - Solution A - valueAsNumber: true:
+
+    Converts the string to a number at the HTML input level
+
+    register receives the numeric value directly
+
+    Coercion happens in the browser before RHF gets the data
+
+  - Solution B - z.coerce.number():
+
+    Zod converts the string to a number during validation
+
+    RHF still sees a string, but Zod handles the conversion
+
+    Coercion happens in the validation layer
+
+  - Both result in z.infer<typeof schema> being number: the coercion happens at different layers but the final type is the same.
+
+  - Solution A will be best  to use, due to it being more explicit at the HTML level. RHF is also able to receives the correct type immediately and there is better type safety throughout the form.
+
+3. mutate vs mutateAsync timing bug:
+  mutate returns void: meaning it does not return a promise. mutateAsync returns: Promise<T> that you can await. Difference between mutate and mutateAsync:
+  ```
+  // The call stack:
+    handleSubmit(onValid) 
+      → onValid(data) 
+        → mutate(data) // Returns void, doesn't await
+          → isSubmitting drops to false // BEFORE the network request completes
+          → mutation.isPending is still true
+  ```
+
+  ```
+  // With mutateAsync:
+    handleSubmit(onValid) 
+      → onValid(data) 
+        → await mutateAsync(data) // Returns a promise
+          → isSubmitting stays true UNTIL the promise resolves
+          → Network request completes
+          → Promise resolves
+          → isSubmitting drops to false
+  ```
+4. onSuccess placement
+
+  Scenario where A and B behave differently:
+
+  Option A (in options): Called for EVERY mutation call
+
+  Option B (per call): Called only for that specific mutation
+
+  Example scenario:
+  If a form that's submitted multiple times, Option A's onSuccess fires every time. Option B's onSuccess fires only for that specific submission attempt.
+
+  Which to use: Use Option A (in the useMutation options) because:
+
+  We want to invalidate ["jobs"] and reset the form on EVERY successful submission
+
+  Centralizes the success logic
+
+  Ensures consistency regardless of where the mutation is called from
+
+  ## Post Coding ReadMe Updates ##
+  1. Schema Design Decisions
+    For phone and LinkedIn URL fields, I use `z.union([z.literal(''), validator])` 
+    with `.transform()` to handle empty strings from HTML inputs.
+
+    - `z.string().optional()` alone fails because HTML inputs submit empty strings, 
+      not `undefined`
+    - `.or(z.literal(''))` accepts empty strings
+    - `.transform()` converts empty strings to `undefined`
+    - Final type: `string | undefined` (never `""`)
+
+    This ensures the API never receives empty strings for optional fields.
+
+  2. Cross-Field Refine
+    The `.refine()` method validates relationships between fields:
+      - First argument: Function that returns boolean - validates if condition is met
+      - `path` option: Attaches error to a specific field, not the root
+
+  Without `path`, the error would appear at the form level instead of on the 
+  noticePeriodWeeks field, making it less discoverable for users.
+
+  Field-level `.min(1)` alone can't express "only required when another field is false".
+
+  3. Loading Flags
+    `isBusy = isSubmitting || mutation.isPending`
+
+    Timeline with `mutateAsync`:
+    1. Button click → isSubmitting = true
+    2. Form validation passes → submit handler runs
+    3. await mutateAsync() → mutation.isPending = true
+    4. Network request in flight → BOTH flags are true
+    5. Request completes → mutation.isPending = false, isSubmitting = false
+
+    With `mutateAsync`, mutation.isPending cannot outlast isSubmitting because 
+    isSubmitting drops after the async function completes, which is after the mutation resolves.
+
+  4. Gate
+  > careerhub-frontend@0.1.0 dev
+  > next dev
+
+  ▲ Next.js 16.2.9 (Turbopack)
+  - Local:         http://localhost:3000
+  - Network:       http://192.168.101.109:3000
+  - Environments: .env.local
+  ✓ Ready in 2.1s
+  ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+  We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
+  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+  Detected additional lockfiles: 
+    * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
+
+
+  GET / 200 in 1461ms (next.js: 525ms, application-code: 936ms)
+  GET / 200 in 206ms (next.js: 42ms, application-code: 163ms)
