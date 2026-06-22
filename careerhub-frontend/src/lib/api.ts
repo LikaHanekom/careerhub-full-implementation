@@ -1,30 +1,42 @@
 //bridge between application and backend API
-import { JobListing } from '@/types'; 
+import { JobListing } from "@/types";
 
-//if this succeeds TanStack then caches the result
-//if this fails TanStack throws error
 export async function fetchJobs(): Promise<JobListing[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL; //environment configuration
-  
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
   if (!baseUrl) {
-    throw new Error('NEXT_PUBLIC_API_URL is not defined in environment variables');
+    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
   }
 
-  const url = `${baseUrl}/api/jobs`;
-  
+  const url = `${baseUrl}/api/v1/jobs`;
+
   try {
     const response = await fetch(url);
-    
-    // Check response.ok - checks Errors and thow statements
+
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    
-    const data = await response.json();
-    
-    return data as JobListing[];
+
+    const result = await response.json();
+
+    return (result.data ?? []).map((job: any): JobListing => ({
+      id: job.id,
+      title: job.title,
+      company: job.companyName,          
+      location: job.location,
+
+      employmentType: job.type,         
+
+      salaryMin: job.salaryMin ?? null,
+      salaryMax: job.salaryMax ?? null,
+
+      postedAt: job.postedAt,
+      isActive: job.isActive,
+
+      applicantCount: job.applicationCount ?? 0,
+      isAvailable: true,
+    }));
   } catch (error) {
-    // If fetch itself fails  rethrow with friendly message
     if (error instanceof Error) {
       throw new Error(`Failed to fetch jobs: ${error.message}`);
     }

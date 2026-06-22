@@ -16,6 +16,8 @@ const salaryFormatter = new Intl.NumberFormat("en-ZA", {
 });
 
 export default function JobCard({ job, isSelected, onSelect }: JobCardProps) {
+  const hasSalary = job.salaryMin != null && job.salaryMax != null;
+
   return (
     <div
       onClick={() => onSelect(job.id)}
@@ -40,7 +42,7 @@ export default function JobCard({ job, isSelected, onSelect }: JobCardProps) {
         </p>
       </div>
 
-      {/* Tags */}
+      {/* Badge */}
       <div className="flex flex-wrap gap-2 mb-3">
         <JobStatusBadge
           employmentType={job.employmentType}
@@ -48,10 +50,11 @@ export default function JobCard({ job, isSelected, onSelect }: JobCardProps) {
         />
       </div>
 
-      {/* Salary */}
+      {/* Salary (SAFE) */}
       <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-4">
-        {salaryFormatter.format(job.salaryMin)} –{" "}
-        {salaryFormatter.format(job.salaryMax)} / month
+        {hasSalary
+          ? `${salaryFormatter.format(job.salaryMin!)} – ${salaryFormatter.format(job.salaryMax!)} / month`
+          : "Salary not specified"}
       </p>
 
       {/* Footer */}

@@ -1,15 +1,19 @@
-export type EmploymentType = "Full-Time" | "Part-Time" | "Contract" | "Internship" ;
-//defines the shape of the data 
+export type EmploymentType =
+  | "FullTime"
+  | "PartTime"
+  | "Contract"
+  | "Internship";
+
 export interface JobListing {
-    id: string; // GUID format
-    title: string;
-    company: string;
-    location: string;
-    employmentType: EmploymentType; 
-    salaryMin: number;
-    salaryMax: number;
-    postedAt: string; // ISO 8601 date
-    isActive: boolean;
-    applicantCount: number;
-    isAvailable: boolean;
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  employmentType: EmploymentType; // mapped from backend
+  salaryMin: number | null;
+  salaryMax: number | null;
+  postedAt: string;
+  isActive: boolean;
+  applicantCount: number;
+  isAvailable: boolean;
 }
