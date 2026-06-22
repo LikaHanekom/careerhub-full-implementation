@@ -7,6 +7,7 @@ using CareerHub.Api.Models;
 using CareerHub.Api.Enums;
 using CareerHub.Api.Services;
 using Microsoft.AspNetCore.RateLimiting;
+using CareerHub.Api.Exceptions;
 
 namespace CareerHub.Api.Controllers;
 
@@ -18,6 +19,7 @@ public class ApplicationController(IApplicationService applicationService) : Con
     private readonly IApplicationService _applicationService = applicationService;
 
     // ── 1. SUBMIT AN APPLICATION 
+    // ── 1. SUBMIT AN APPLICATION 
     [HttpPost("apply")]
     [EnableRateLimiting("apply")]
     public async Task<ActionResult<Application>> ApplyForJob([FromBody] ApplicationRequest request)
@@ -27,14 +29,28 @@ public class ApplicationController(IApplicationService applicationService) : Con
             return BadRequest(ModelState);
         }
 
-        // Submits application via service tier. Relies on middleware if duplicate exists.
-        var result = await _applicationService.SubmitApplicationAsync(request);
-
-        return StatusCode(201, result);
+        try 
+        {
+            // Submits application via service tier.
+            var result = await _applicationService.SubmitApplicationAsync(request);
+            return CreatedAtAction(nameof(GetApplicationById), new { id = result.Id }, result);
+        }
+        catch (ListingClosedException ex)
+        {
+            return BadRequest(ex.Message); // Or 422 Unprocessable Entity
+        }
+        catch (DuplicateApplicationException ex)
+        {
+            return Conflict(ex.Message); // 409 Conflict is perfect for duplicates
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "An unexpected error occurred while processing your application.");
+        }
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetApplicationById(Guid id) // 🚀 Uses IActionResult for flexible 304/200 returns
+    public async Task<IActionResult> GetApplicationById(Guid id) 
     {
         // 1. Fetch the application using your service layer
         var app = await _applicationService.GetApplicationByIdAsync(id);

@@ -36,6 +36,10 @@ public class ApplicationRepository : IApplicationRepository
             .Include(a => a.JobListing) 
             .ToListAsync();
     }
+      public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
 
     public async Task<IEnumerable<Application>> GetApplicationsForListingAsync(Guid jobListingId)
     {

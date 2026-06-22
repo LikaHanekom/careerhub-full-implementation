@@ -6,13 +6,9 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { submitApplication } from '@/lib/api';
 import { ApplicationRequest } from '@/types';
-import { cn } from '@/lib/utils'; // Assuming you have a cn utility
+import { cn } from '@/lib/utils'; 
 
-// ============================================
-// ZOD SCHEMA - ALL VALIDATION RULES HERE
-// ============================================
 
-// Phone regex: starts with optional +, then 8-15 digits, spaces, dashes, or parentheses
 const phoneRegex = /^\+?[\d\s\-()]{8,15}$/;
 
 // LinkedIn URL validation
@@ -84,9 +80,6 @@ const applicationSchema = z
 // Derive TypeScript type from schema
 type ApplicationFormData = z.infer<typeof applicationSchema>;
 
-// ============================================
-// COMPONENT
-// ============================================
 
 interface ApplicationFormProps {
   jobId: string;
@@ -103,7 +96,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
     reset,
     formState: { errors, isSubmitting },
     watch,
-  } = useForm<ApplicationFormData>({
+  } = useForm({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
       availableImmediately: true,
@@ -130,7 +123,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
 
   // Submit handler
   const onSubmit = async (data: ApplicationFormData) => {
-    // Transform data to match ApplicationRequest type
+    // Transform  ApplicationRequest
     const applicationData: ApplicationRequest = {
       jobId,
       fullName: data.fullName,
@@ -143,7 +136,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
       noticePeriodWeeks: data.noticePeriodWeeks,
     };
 
-    // Use mutateAsync - returns a promise we can await
+    // Use mutateAsync - returns a promise can await
     await mutation.mutateAsync(applicationData);
   };
 
@@ -152,7 +145,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
     return (
       <div className="mt-4 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
         <h3 className="text-lg font-semibold text-green-700 dark:text-green-400">
-          ✅ Application Submitted!
+          Application Submitted!
         </h3>
         <p className="text-green-600 dark:text-green-300 mt-2">
           You have successfully applied for <strong>{jobTitle}</strong>
@@ -178,10 +171,6 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
         </div>
       )}
 
-      {/* 
-        noValidate attribute: Prevents browser's native HTML5 validation.
-        We want Zod to handle all validation for consistency.
-      */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <div className="space-y-4">
           {/* Full Name */}

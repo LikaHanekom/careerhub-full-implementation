@@ -39,15 +39,25 @@ namespace CareerHub.Api.Services
                 throw new DuplicateApplicationException(request.ApplicantId);
             }
 
+            // Mapping DTO fields to the Model
             var application = new Application
             { 
                 JobListingId = request.JobListingId,
                 ApplicantId = request.ApplicantId,
+                FullName = request.FullName,
+                Email = request.Email,
+                Phone = request.Phone,
+                YearsOfExperience = request.YearsOfExperience,
+                CoverLetter = request.CoverLetter,
+                LinkedInUrl = request.LinkedInUrl,
+                AvailableImmediately = request.AvailableImmediately,
+                NoticePeriodWeeks = request.NoticePeriodWeeks,
                 SubmittedAt = DateTime.UtcNow,
                 Status = ApplicationStatus.Submitted 
             };
 
             await _applicationRepo.AddAsync(application);
+            await _applicationRepo.SaveChangesAsync(); // Ensure you save the changes
             return application;
         }
 

@@ -7,13 +7,13 @@ namespace CareerHub.Api.Repositories;
 
 public interface IApplicationRepository
 {
-    
     Task<bool> HasApplicantAlreadyAppliedAsync(Guid applicantId, Guid jobListingId);
     Task AddAsync(Application application);
     Task<IEnumerable<Application>> GetApplicationsByApplicantAsync(Guid applicantId);
     Task<IEnumerable<Application>> GetApplicationsForListingAsync(Guid jobListingId);
-    
     Task UpdateAsync(Application application);
     Task<Application?> GetApplicationByIdAsync(Guid id);
     Task<bool> HasAppliedCompiledAsync(Guid applicantId, Guid jobListingId);
+    
+    Task SaveChangesAsync(); 
 }
