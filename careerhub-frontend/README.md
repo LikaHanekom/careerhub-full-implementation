@@ -381,3 +381,59 @@ Both components make separate network requests for the same data, causing unnece
   Centralizes the success logic
 
   Ensures consistency regardless of where the mutation is called from
+
+  ## Post Coding ReadMe Updates ##
+  1. Schema Design Decisions
+    For phone and LinkedIn URL fields, I use `z.union([z.literal(''), validator])` 
+    with `.transform()` to handle empty strings from HTML inputs.
+
+    - `z.string().optional()` alone fails because HTML inputs submit empty strings, 
+      not `undefined`
+    - `.or(z.literal(''))` accepts empty strings
+    - `.transform()` converts empty strings to `undefined`
+    - Final type: `string | undefined` (never `""`)
+
+    This ensures the API never receives empty strings for optional fields.
+
+  2. Cross-Field Refine
+    The `.refine()` method validates relationships between fields:
+      - First argument: Function that returns boolean - validates if condition is met
+      - `path` option: Attaches error to a specific field, not the root
+
+  Without `path`, the error would appear at the form level instead of on the 
+  noticePeriodWeeks field, making it less discoverable for users.
+
+  Field-level `.min(1)` alone can't express "only required when another field is false".
+
+  3. Loading Flags
+    `isBusy = isSubmitting || mutation.isPending`
+
+    Timeline with `mutateAsync`:
+    1. Button click → isSubmitting = true
+    2. Form validation passes → submit handler runs
+    3. await mutateAsync() → mutation.isPending = true
+    4. Network request in flight → BOTH flags are true
+    5. Request completes → mutation.isPending = false, isSubmitting = false
+
+    With `mutateAsync`, mutation.isPending cannot outlast isSubmitting because 
+    isSubmitting drops after the async function completes, which is after the mutation resolves.
+
+  4. Gate
+  > careerhub-frontend@0.1.0 dev
+  > next dev
+
+  ▲ Next.js 16.2.9 (Turbopack)
+  - Local:         http://localhost:3000
+  - Network:       http://192.168.101.109:3000
+  - Environments: .env.local
+  ✓ Ready in 2.1s
+  ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+  We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
+  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+  Detected additional lockfiles: 
+    * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
+
+
+  GET / 200 in 1461ms (next.js: 525ms, application-code: 936ms)
+  GET / 200 in 206ms (next.js: 42ms, application-code: 163ms)
