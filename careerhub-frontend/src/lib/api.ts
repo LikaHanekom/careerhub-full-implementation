@@ -1,45 +1,53 @@
 //bridge between application and backend API
-import { JobListing } from "@/types";
+import { JobListing, ApplicationRequest, ApplicationResponse } from "@/types";
 
+// Centralized config
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_BASE) {
+  throw new Error("NEXT_PUBLIC_API_URL is missing");
+}
+
+// Private helper for common logic
+async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.title || `Request failed with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Clean, readable exports
 export async function fetchJobs(): Promise<JobListing[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  const result = await apiRequest<{ data: any[] }>('/api/v1/jobs');
+  
+  return (result.data ?? []).map((job) => ({
+    id: job.id,
+    title: job.title,
+    company: job.companyName,
+    location: job.location,
+    employmentType: job.type,
+    salaryMin: job.salaryMin ?? null,
+    salaryMax: job.salaryMax ?? null,
+    postedAt: job.postedAt,
+    isActive: job.isActive,
+    applicantCount: job.applicationCount ?? 0,
+    isAvailable: true,
+  }));
+}
 
-  if (!baseUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
-  }
-
-  const url = `${baseUrl}/api/v1/jobs`;
-
-  try {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const result = await response.json();
-
-    return (result.data ?? []).map((job: any): JobListing => ({
-      id: job.id,
-      title: job.title,
-      company: job.companyName,          
-      location: job.location,
-
-      employmentType: job.type,         
-
-      salaryMin: job.salaryMin ?? null,
-      salaryMax: job.salaryMax ?? null,
-
-      postedAt: job.postedAt,
-      isActive: job.isActive,
-
-      applicantCount: job.applicationCount ?? 0,
-      isAvailable: true,
-    }));
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to fetch jobs: ${error.message}`);
-    }
-    throw error;
-  }
+export async function submitApplication(data: ApplicationRequest): Promise<ApplicationResponse> {
+  return apiRequest<ApplicationResponse>('/api/applications', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
