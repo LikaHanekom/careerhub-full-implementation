@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 
 const phoneRegex = /^\+?[\d\s\-()]{8,15}$/;
 
-// LinkedIn URL validation
 const linkedInUrlSchema = z
   .string()
   .url('Must be a valid URL')
@@ -31,7 +30,7 @@ const applicationSchema = z
 
     phone: z
       .union([
-        z.literal(''), // Empty string = absent
+        z.literal(''),
         z.string().regex(phoneRegex, 'Please enter a valid phone number'),
       ])
       .optional()
@@ -50,7 +49,7 @@ const applicationSchema = z
 
     linkedInUrl: z
       .union([
-        z.literal(''), // Empty string = absent
+        z.literal(''),
         linkedInUrlSchema,
       ])
       .optional()
@@ -65,7 +64,6 @@ const applicationSchema = z
   })
   .refine(
     (data) => {
-      // If not immediately available, notice period must be > 0
       if (!data.availableImmediately) {
         return data.noticePeriodWeeks > 0;
       }
@@ -73,29 +71,26 @@ const applicationSchema = z
     },
     {
       message: 'Notice period must be at least 1 week when not immediately available',
-      path: ['noticePeriodWeeks'], // Attach error to this field
+      path: ['noticePeriodWeeks'],
     }
   );
 
-// Derive TypeScript type from schema
 type ApplicationFormData = z.infer<typeof applicationSchema>;
-
 
 interface ApplicationFormProps {
   jobId: string;
   jobTitle: string;
+  applicantId: string;
 }
 
-export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
+export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFormProps) {
   const queryClient = useQueryClient();
 
-  // React Hook Form setup
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-    watch,
   } = useForm({
     resolver: zodResolver(applicationSchema),
     defaultValues: {
@@ -105,27 +100,23 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
     },
   });
 
-  // Mutation
   const mutation = useMutation({
     mutationFn: submitApplication,
     onSuccess: () => {
-      // Invalidate jobs cache to refresh the listing
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      reset(); // Reset form on success
+      reset();
     },
     onError: (error) => {
       console.error('Application submission failed:', error);
     },
   });
 
-  // Loading guard - combines both flags
   const isBusy = isSubmitting || mutation.isPending;
 
-  // Submit handler
   const onSubmit = async (data: ApplicationFormData) => {
-    // Transform  ApplicationRequest
     const applicationData: ApplicationRequest = {
-      jobId,
+      jobListingId: jobId,
+      applicantId: applicantId,
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
@@ -136,11 +127,9 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
       noticePeriodWeeks: data.noticePeriodWeeks,
     };
 
-    // Use mutateAsync - returns a promise can await
     await mutation.mutateAsync(applicationData);
   };
 
-  // Success state
   if (mutation.isSuccess) {
     return (
       <div className="mt-4 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
@@ -157,14 +146,12 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
     );
   }
 
-  // Form error (server errors)
   const formError = mutation.isError ? mutation.error?.message : null;
 
   return (
     <div className="mt-4 border dark:border-gray-700 rounded-lg p-6">
       <h3 className="text-xl font-semibold mb-4">Apply for {jobTitle}</h3>
 
-      {/* Form-level error */}
       {formError && (
         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
           <p className="text-red-600 dark:text-red-400">{formError}</p>
@@ -183,9 +170,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
               type="text"
               className={cn(
                 'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.fullName
-                  ? 'border-red-500 dark:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                errors.fullName ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               )}
               aria-invalid={!!errors.fullName}
               {...register('fullName')}
@@ -205,9 +190,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
               type="email"
               className={cn(
                 'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.email
-                  ? 'border-red-500 dark:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                errors.email ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               )}
               aria-invalid={!!errors.email}
               {...register('email')}
@@ -227,9 +210,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
               type="tel"
               className={cn(
                 'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.phone
-                  ? 'border-red-500 dark:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                errors.phone ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               )}
               aria-invalid={!!errors.phone}
               {...register('phone')}
@@ -239,7 +220,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
             )}
           </div>
 
-          {/* Years of Experience - with valueAsNumber */}
+          {/* Years of Experience */}
           <div>
             <label htmlFor="yearsOfExperience" className="block text-sm font-medium mb-1">
               Years of Experience *
@@ -251,9 +232,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
               max={50}
               className={cn(
                 'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.yearsOfExperience
-                  ? 'border-red-500 dark:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                errors.yearsOfExperience ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               )}
               aria-invalid={!!errors.yearsOfExperience}
               {...register('yearsOfExperience', { valueAsNumber: true })}
@@ -273,9 +252,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
               rows={4}
               className={cn(
                 'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.coverLetter
-                  ? 'border-red-500 dark:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                errors.coverLetter ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               )}
               aria-invalid={!!errors.coverLetter}
               {...register('coverLetter')}
@@ -295,9 +272,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
               type="url"
               className={cn(
                 'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.linkedInUrl
-                  ? 'border-red-500 dark:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                errors.linkedInUrl ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               )}
               aria-invalid={!!errors.linkedInUrl}
               {...register('linkedInUrl')}
@@ -307,7 +282,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
             )}
           </div>
 
-          {/* Available Immediately - checkbox */}
+          {/* Available Immediately */}
           <div>
             <label className="flex items-center gap-2">
               <input
@@ -330,9 +305,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
               min={0}
               className={cn(
                 'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.noticePeriodWeeks
-                  ? 'border-red-500 dark:border-red-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                errors.noticePeriodWeeks ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
               )}
               aria-invalid={!!errors.noticePeriodWeeks}
               {...register('noticePeriodWeeks', { valueAsNumber: true })}
@@ -348,9 +321,7 @@ export function ApplicationForm({ jobId, jobTitle }: ApplicationFormProps) {
             disabled={isBusy}
             className={cn(
               'w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-md transition-colors',
-              isBusy
-                ? 'bg-blue-400 cursor-not-allowed opacity-70'
-                : 'hover:bg-blue-700'
+              isBusy ? 'bg-blue-400 cursor-not-allowed opacity-70' : 'hover:bg-blue-700'
             )}
           >
             {isBusy ? 'Submitting...' : 'Submit Application'}

@@ -45,9 +45,13 @@ export async function fetchJobs(): Promise<JobListing[]> {
   }));
 }
 
-export async function submitApplication(data: ApplicationRequest): Promise<ApplicationResponse> {
-  return apiRequest<ApplicationResponse>('/api/applications', {
+  export async function submitApplication(data: ApplicationRequest): Promise<ApplicationResponse> {
+  return apiRequest<ApplicationResponse>('/api/v1/applications/apply', {
     method: 'POST',
     body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
+
 }

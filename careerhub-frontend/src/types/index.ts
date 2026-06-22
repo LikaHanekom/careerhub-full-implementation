@@ -18,8 +18,10 @@ export interface JobListing {
   isAvailable: boolean;
 }
 
+// types/index.ts
 export interface ApplicationRequest {
-  jobId: string;
+  jobListingId: string;   // was: jobId
+  applicantId: string;    // was: missing entirely
   fullName: string;
   email: string;
   phone?: string;

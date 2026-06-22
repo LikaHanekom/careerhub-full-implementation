@@ -26,40 +26,40 @@ namespace CareerHub.Api.Services
         }
 
         public async Task<Application> SubmitApplicationAsync(ApplicationRequest request)
-        {
-            var isListingOpen = await _jobRepo.IsListingOpenAsync(request.JobListingId);
-            if (!isListingOpen)
-            {
-                throw new ListingClosedException(request.JobListingId);
-            }
+{
+    var isListingOpen = await _jobRepo.IsListingOpenAsync(request.JobListingId);
+    if (!isListingOpen)
+    {
+        throw new ListingClosedException(request.JobListingId);
+    }
 
-            var alreadyApplied = await _applicationRepo.HasApplicantAlreadyAppliedAsync(request.ApplicantId, request.JobListingId);
-            if (alreadyApplied)
-            {
-                throw new DuplicateApplicationException(request.ApplicantId);
-            }
+    var alreadyApplied = await _applicationRepo.HasApplicantAlreadyAppliedAsync(request.ApplicantId, request.JobListingId);
+    if (alreadyApplied)
+    {
+        throw new DuplicateApplicationException(request.ApplicantId);
+    }
 
-            // Mapping DTO fields to the Model
-            var application = new Application
-            { 
-                JobListingId = request.JobListingId,
-                ApplicantId = request.ApplicantId,
-                FullName = request.FullName,
-                Email = request.Email,
-                Phone = request.Phone,
-                YearsOfExperience = request.YearsOfExperience,
-                CoverLetter = request.CoverLetter,
-                LinkedInUrl = request.LinkedInUrl,
-                AvailableImmediately = request.AvailableImmediately,
-                NoticePeriodWeeks = request.NoticePeriodWeeks,
-                SubmittedAt = DateTime.UtcNow,
-                Status = ApplicationStatus.Submitted 
-            };
+    // Mapping DTO fields to the Model
+    var application = new Application
+    { 
+        JobListingId = request.JobListingId,
+        ApplicantId = request.ApplicantId,
+        FullName = request.FullName,
+        Email = request.Email,
+        Phone = request.Phone,
+        YearsOfExperience = request.YearsOfExperience,
+        CoverLetter = request.CoverLetter,
+        LinkedInUrl = request.LinkedInUrl,
+        AvailableImmediately = request.AvailableImmediately,
+        NoticePeriodWeeks = request.NoticePeriodWeeks,
+        SubmittedAt = DateTime.UtcNow,
+        Status = ApplicationStatus.Submitted 
+    };
 
-            await _applicationRepo.AddAsync(application);
-            await _applicationRepo.SaveChangesAsync(); // Ensure you save the changes
-            return application;
-        }
+    await _applicationRepo.AddAsync(application);
+    await _applicationRepo.SaveChangesAsync(); // Ensure you save the changes
+    return application;
+}
 
         public async Task UpdateStatusAsync(Guid applicantId, Guid jobListingId, ApplicationStatus newStatus)
         {

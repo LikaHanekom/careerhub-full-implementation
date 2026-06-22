@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +6,8 @@ import { fetchJobs } from "@/lib/api";
 import JobCard from "@/components/JobCard";
 import { cn } from "@/lib/utils";
 import { JobListSkeleton } from "@/components/JobCardSkeleton";
+// Import the ApplicationForm
+import { ApplicationForm } from "@/components/ApplicationForm";
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -110,6 +112,17 @@ export default function Home() {
             />
           ))}
         </div>
+
+        {/* Application Form - Only show when a job is selected */}
+        {selectedJob && (
+          <div className="mt-8">
+            <ApplicationForm 
+              jobId={selectedJob.id} 
+              jobTitle={selectedJob.title}
+              applicantId="a1111111-1111-1111-1111-111111111111" // replace with real auth
+            />
+          </div>
+        )}
       </main>
     </div>
   );
