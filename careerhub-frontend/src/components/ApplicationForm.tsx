@@ -8,7 +8,6 @@ import { submitApplication } from '@/lib/api';
 import { ApplicationRequest } from '@/types';
 import { cn } from '@/lib/utils'; 
 
-
 const phoneRegex = /^\+?[\d\s\-()]{8,15}$/;
 
 const linkedInUrlSchema = z
@@ -90,6 +89,7 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(applicationSchema),
@@ -100,16 +100,32 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
     },
   });
 
+  const watchAvailableImmediately = watch('availableImmediately');
+  //Stretch B: Optimistic feedback
   const mutation = useMutation({
-    mutationFn: submitApplication,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      reset();
-    },
-    onError: (error) => {
-      console.error('Application submission failed:', error);
-    },
-  });
+  mutationFn: submitApplication,
+  onMutate: async (newApplication) => {
+    await queryClient.cancelQueries({ queryKey: ['jobs'] });
+    const previousJobs = queryClient.getQueryData(['jobs']);
+    queryClient.setQueryData(['jobs'], (old: any) =>
+      old.map((job: any) =>
+        job.id === newApplication.jobListingId 
+          ? { ...job, isApplied: true }
+          : job
+      )
+    );
+    return { previousJobs };
+  },
+  onError: (err, newApplication, context) => {
+    queryClient.setQueryData(['jobs'], context?.previousJobs);
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ['jobs'] });
+  },
+  onSuccess: () => {
+    reset();
+  },
+});
 
   const isBusy = isSubmitting || mutation.isPending;
 
@@ -294,26 +310,28 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
             </label>
           </div>
 
-          {/* Notice Period */}
-          <div>
-            <label htmlFor="noticePeriodWeeks" className="block text-sm font-medium mb-1">
-              Notice Period (Weeks) *
-            </label>
-            <input
-              id="noticePeriodWeeks"
-              type="number"
-              min={0}
-              className={cn(
-                'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
-                errors.noticePeriodWeeks ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+          {/* Notice Period - only shown when not immediately available */}
+          {!watchAvailableImmediately && (
+            <div>
+              <label htmlFor="noticePeriodWeeks" className="block text-sm font-medium mb-1">
+                Notice Period (Weeks) *
+              </label>
+              <input
+                id="noticePeriodWeeks"
+                type="number"
+                min={1}
+                className={cn(
+                  'w-full px-3 py-2 border rounded-md bg-white dark:bg-gray-800',
+                  errors.noticePeriodWeeks ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'
+                )}
+                aria-invalid={!!errors.noticePeriodWeeks}
+                {...register('noticePeriodWeeks', { valueAsNumber: true })}
+              />
+              {errors.noticePeriodWeeks && (
+                <p className="mt-1 text-sm text-red-500">{errors.noticePeriodWeeks.message}</p>
               )}
-              aria-invalid={!!errors.noticePeriodWeeks}
-              {...register('noticePeriodWeeks', { valueAsNumber: true })}
-            />
-            {errors.noticePeriodWeeks && (
-              <p className="mt-1 text-sm text-red-500">{errors.noticePeriodWeeks.message}</p>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button
