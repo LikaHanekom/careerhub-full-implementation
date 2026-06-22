@@ -297,3 +297,87 @@ Both components make separate network requests for the same data, causing unnece
 
  GET / 200 in 1028ms (next.js: 474ms, application-code: 554ms)
  GET /api/jobs 200 in 225ms (next.js: 186ms, application-code: 38ms)
+
+ # Assignment 1.4 #
+ ## Pre Coding Questions ##
+ 1. Why @hookform/resolvers is a separate package
+
+    - What problem it solves: Library maintainers can update RHF or Zod independently without breaking each other. Allows RHF to support multiple validation libraries (Zod, Yup, Joi, etc.). Prevents tight coupling between RHF and any specific validation library
+
+    - What zodResolver does at runtime: 
+    Receives: A Zod schema from RHF
+    Calls: schema.safeParse() on the form data
+    Returns: An object with values (validated data) and errors (validation errors)
+
+    ```
+    typescript
+    (schema: ZodSchema) => (values: any) => {
+      const result = schema.safeParse(values);
+      if (result.success) {
+        return { values: result.data, errors: {} };
+      }
+      return { values: {}, errors: formatZodErrors(result.error) };
+    }
+    ```
+
+2. The number input problem
+
+  - Solution A - valueAsNumber: true:
+
+    Converts the string to a number at the HTML input level
+
+    register receives the numeric value directly
+
+    Coercion happens in the browser before RHF gets the data
+
+  - Solution B - z.coerce.number():
+
+    Zod converts the string to a number during validation
+
+    RHF still sees a string, but Zod handles the conversion
+
+    Coercion happens in the validation layer
+
+  - Both result in z.infer<typeof schema> being number: the coercion happens at different layers but the final type is the same.
+
+  - Solution A will be best  to use, due to it being more explicit at the HTML level. RHF is also able to receives the correct type immediately and there is better type safety throughout the form.
+
+3. mutate vs mutateAsync timing bug:
+  mutate returns void: meaning it does not return a promise. mutateAsync returns: Promise<T> that you can await. Difference between mutate and mutateAsync:
+  ```
+  // The call stack:
+    handleSubmit(onValid) 
+      → onValid(data) 
+        → mutate(data) // Returns void, doesn't await
+          → isSubmitting drops to false // BEFORE the network request completes
+          → mutation.isPending is still true
+  ```
+
+  ```
+  // With mutateAsync:
+    handleSubmit(onValid) 
+      → onValid(data) 
+        → await mutateAsync(data) // Returns a promise
+          → isSubmitting stays true UNTIL the promise resolves
+          → Network request completes
+          → Promise resolves
+          → isSubmitting drops to false
+  ```
+4. onSuccess placement
+
+  Scenario where A and B behave differently:
+
+  Option A (in options): Called for EVERY mutation call
+
+  Option B (per call): Called only for that specific mutation
+
+  Example scenario:
+  If a form that's submitted multiple times, Option A's onSuccess fires every time. Option B's onSuccess fires only for that specific submission attempt.
+
+  Which to use: Use Option A (in the useMutation options) because:
+
+  We want to invalidate ["jobs"] and reset the form on EVERY successful submission
+
+  Centralizes the success logic
+
+  Ensures consistency regardless of where the mutation is called from
