@@ -18,10 +18,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-sans antialiased",
-        geistSans.variable, 
-        geistMono.variable, 
-        inter.variable)}>
+      <body className={cn(
+            "min-h-screen bg-background font-sans antialiased",
+            geistSans.variable, 
+            geistMono.variable, 
+            inter.variable
+          )}
+          suppressHydrationWarning={true} // Add this line
+        >
           {/*Wraps the content in ThemeProvider and TanStack Providers */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Providers>

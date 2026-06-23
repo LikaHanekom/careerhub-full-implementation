@@ -42,9 +42,9 @@ export interface ApplicationResponse {
 
 export interface CreateJobRequest {
   title: string;
-  companyId: string;  // Changed from companyName to companyId
+  companyId: string;  
   location: string;
-  type: 'FullTime' | 'PartTime' | 'Contract' | 'Casual';  // No hyphens!
+  type: EmploymentType;  
   salaryMin: number | null;
   salaryMax: number | null;
   description: string;
@@ -59,7 +59,7 @@ export interface CreateJobResponse {
   title: string;
   companyName: string;
   location: string;
-  type: 'Full-time' | 'Part-time' | 'Contract' | 'Casual';
+  type: EmploymentType;
   salaryMin: number | null;
   salaryMax: number | null;
   postedAt: string;
@@ -72,9 +72,9 @@ export interface CreateJobResponse {
 // Form data type (matches your UI form)
 export interface CreateJobFormData {
   title: string;
-  companyId: string;  // Changed from company to companyId
+  companyId: string;  
   location: string;
-  employmentType: 'FullTime' | 'PartTime' | 'Contract' | 'Casual';  // No hyphens
+  employmentType: EmploymentType;  // No hyphens
   salaryMin: number;
   salaryMax: number;
   description: string;
