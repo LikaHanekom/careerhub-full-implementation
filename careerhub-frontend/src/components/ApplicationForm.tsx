@@ -100,7 +100,7 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
     },
   });
 
-  const watchAvailableImmediately = watch('availableImmediately');
+  const watchAvailableImmediately = watch('availableImmediately'); //Checks for availableImmediately box check
   //Stretch B: Optimistic feedback
   const mutation = useMutation({
   mutationFn: submitApplication,

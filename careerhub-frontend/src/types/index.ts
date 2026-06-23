@@ -20,8 +20,8 @@ export interface JobListing {
 
 // types/index.ts
 export interface ApplicationRequest {
-  jobListingId: string;   // was: jobId
-  applicantId: string;    // was: missing entirely
+  jobListingId: string;   
+  applicantId: string;   
   fullName: string;
   email: string;
   phone?: string;
