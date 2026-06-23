@@ -15,7 +15,7 @@ async function getJobs(): Promise<JobListing[]> {
   console.log("Attempted access of .items:", envelope.items);
 
   // Return data based on inspection
-  return envelope.items || envelope.data || (Array.isArray(envelope) ? envelope : []);
+  return envelope.data || [];
 }
 
 // Server Component

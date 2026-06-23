@@ -16,6 +16,7 @@ export interface JobListing {
   isActive: boolean;
   applicantCount: number;
   isAvailable: boolean;
+  description: string;
 }
 
 // types/index.ts
