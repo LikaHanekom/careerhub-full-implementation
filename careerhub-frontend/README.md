@@ -437,3 +437,232 @@ Both components make separate network requests for the same data, causing unnece
 
   GET / 200 in 1461ms (next.js: 525ms, application-code: 936ms)
   GET / 200 in 206ms (next.js: 42ms, application-code: 163ms)
+
+
+# Pre Code README updates: Assignment 2.1 #
+ ## Question 1: cache: "no-store" vs Default ##
+
+cache: "no-store" tells Next.js NOT to cache the fetch response on the server. This is a Next.js server-side cache (not browser cache or CDN cache). The cache lives in Next.js's internal data cache (on the server).
+
+When to use default cached behavior:
+
+- For static data that rarely changes (e.g., company info, job categories)
+
+- For data that can be stale between revalidations
+
+- When you want to reduce server load and improve response times
+
+Difference from TanStack Query:
+
+TanStack Query caches on the client (browser) and can refetch on window focus
+
+Next.js fetch caching caches on the server - the data never reaches the browser until it's rendered
+
+TanStack Query is about client-side data management; Next.js fetch is about server-side rendering optimization
+
+## Question 2: The "use client" Boundary ##
+
+"use client" marks a module boundary - it tells Next.js that this file and everything it imports should run on the client.
+
+What the Server Component contributes:
+
+HTML structure with data already populated
+
+The initial HTML response sent to the browser
+
+What the Client Component contributes:
+
+Interactive JavaScript code (form handling, state management)
+
+Event handlers (onClick, onSubmit)
+
+React hooks (useState, useEffect)
+
+What the browser receives:
+
+Initial HTML: The Server Component's rendered output (job details, description, the form container)
+
+JavaScript: The Client Component's bundle (ApplicationForm code with all its validation logic)
+
+## Question 3: Why params.id is Always a String ##
+
+URLs are fundamentally strings - "42", "a1b2c3d4", "senior-engineer" are all strings in the URL path. Next.js doesn't try to guess types because the same route could receive different formats.
+
+For this assignment: No conversion is needed if the API accepts string GUIDs. It pass params.id directly to the fetch URL.
+
+## Question 4: What "layout persists" Means ##
+
+"Does not re-render" means:
+
+The component function is NOT called again
+DOM nodes are NOT destroyed and recreated
+State inside the layout is preserved
+Keeping layout data up to date:
+Use fetch with a short revalidate time, or use next/cache with revalidateTag() to invalidate the cache when data changes.
+
+## README Updates
+
+### 1. The Composition Pattern in `/jobs/[id]`
+
+#### What Happens When You Visit a Job Detail Page
+
+When you go to a URL like `/jobs/123`, here's what happens step by step:
+
+**Step 1: The Server Component Runs First**
+
+The `page.tsx` file runs on the server. It:
+- Calls the API to get the job data
+- Waits for the response
+- Renders the HTML with the job details already in it
+- Creates the `<ApplicationForm />` element with the job data passed as props
+
+**Step 2: The Server Sends HTML to the Browser**
+
+The browser receives a complete HTML page that includes:
+- The job title, company, location, description
+- The status badge (open/closed)
+- The "Back to jobs" link
+- The form with input fields and a submit button
+
+**Step 3: The Client Component Takes Over**
+
+After the HTML loads, the JavaScript for `ApplicationForm` downloads. React then:
+- Attaches event handlers to the form (so clicking "Submit" actually does something)
+- Sets up form validation
+- Manages the form state (tracking what the user types)
+
+#### What if JavaScript is Disabled?
+
+The user still sees:
+- All job details (title, company, location, description)
+- The form structure (input fields, submit button)
+- All the styling and layout
+
+But they CANNOT:
+- Actually submit the form
+- See validation errors if they type something wrong
+- Get a success message after submitting
+
+**Why this matters:** The page works without JavaScript, but works BETTER with it. This is called "progressive enhancement" - the page loads fast and works for everyone.
+
+---
+
+### 2. Why JobLinkCard Has No "use client"
+
+#### The Simple Explanation
+
+Think of it like a restaurant:
+
+- **Server Component** = The menu board (shows what's available, no interaction)
+- **Client Component** = The waiter (takes your order, handles interaction)
+
+`JobLinkCard` is like a menu board - it just shows a job and a link. It doesn't need to handle any clicks or user interaction directly.
+
+#### How `<Link>` Works Without "use client"
+
+Here's the key point: `JobLinkCard` doesn't use any hooks directly. It just renders the `<Link>` component:
+
+```tsx
+// JobLinkCard - NO "use client"
+export default function JobLinkCard({ job }) {
+  return (
+    <Link href={`/jobs/${job.id}`}>  // Just renders this
+      <h3>{job.title}</h3>
+    </Link>
+  );
+}
+
+### 3. loading.tsx vs a Manual Loading State
+The Old Way: Manual Loading with useQuery: 
+
+-You load the page
+
+-The component renders immediately (shows "Loading...")
+
+-A fetch request goes out
+
+-Data comes back
+
+-The component re-renders (shows the actual content)
+
+```
+const { data, isPending } = useQuery({
+  queryKey: ['jobs'],
+  queryFn: fetchJobs
+});
+
+if (isPending) {
+  return <div>Loading...</div>;  // Shows this first
+}
+
+return <div>{data.map(job => ...)}</div>;  // Shows this after data arrives
+Problems with this approach:
+```
+The user sees a blank page first, then a spinner, then content
+It requires JavaScript to work
+The API call happens from the browser (slower)
+
+The New Way: loading.tsx:
+
+-The server starts fetching data
+-The loading.tsx file shows immediately (server sends it)
+-Data arrives on the server
+-The real page content streams to the browser
+-The skeleton is replaced with real content
+
+tsx
+// app/jobs/loading.tsx - shows skeleton
+export default function Loading() {
+  return <div className="animate-pulse">Loading...</div>;
+}
+
+// app/jobs/page.tsx - fetches data
+export default async function JobsPage() {
+  const jobs = await fetchJobs();  // Server fetches this
+  return <div>{jobs.map(job => ...)}</div>;
+}
+Why it's better:
+
+The skeleton appears IMMEDIATELY (no waiting). Content streams as it's ready. Works without JavaScript. The API call happens on the server (faster). 
+
+// This is what Next.js does automatically
+<Suspense fallback={<Loading />}>
+  <JobsPage />  {/* This component fetches data */}
+</Suspense>
+
+### 4. Build Gate Results
+PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> npm run build
+
+> careerhub-frontend@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.1s
+✓ Finished TypeScript in 7.3s    
+✓ Collecting page data using 11 workers in 2.7s    
+✓ Generating static pages using 11 workers (8/8) in 1774ms
+✓ Finalizing page optimization in 52ms    
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/applications
+├ ƒ /api/jobs
+├ ƒ /api/jobs/[id]
+├ ƒ /dashboard/listings
+├ ƒ /jobs
+└ ƒ /jobs/[id]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
