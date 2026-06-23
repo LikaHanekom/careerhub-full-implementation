@@ -1,5 +1,5 @@
 //bridge between application and backend API
-import { JobListing, ApplicationRequest, ApplicationResponse } from "@/types";
+import { JobListing, ApplicationRequest, ApplicationResponse, CreateJobFormData, CreateJobResponse, CreateJobRequest } from "@/types";
 
 // Centralized config
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -45,7 +45,7 @@ export async function fetchJobs(): Promise<JobListing[]> {
   }));
 }
 
-  export async function submitApplication(data: ApplicationRequest): Promise<ApplicationResponse> {
+export async function submitApplication(data: ApplicationRequest): Promise<ApplicationResponse> {
   return apiRequest<ApplicationResponse>('/api/v1/applications/apply', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -53,5 +53,26 @@ export async function fetchJobs(): Promise<JobListing[]> {
       'Content-Type': 'application/json',
     },
   });
+}
 
+export async function createJob(data: CreateJobFormData): Promise<CreateJobResponse> {
+  const requestBody: CreateJobRequest = {
+    title: data.title,
+    companyId: data.companyId,
+    location: data.location,
+    type: data.employmentType,
+    salaryMin: data.salaryMin,
+    salaryMax: data.salaryMax,
+    description: data.description,
+    expiresAt: data.expiresAt, 
+  };
+
+  console.log(' Creating job with:', requestBody);
+
+  const result = await apiRequest<{ data: CreateJobResponse }>('/api/v1/jobs', {
+    method: 'POST',
+    body: JSON.stringify(requestBody),
+  });
+
+  return result.data;
 }
