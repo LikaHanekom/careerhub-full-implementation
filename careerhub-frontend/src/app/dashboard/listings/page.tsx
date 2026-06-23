@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import {JobStatusBadge} from "@/components/JobStatusBadge";
 import { JobListing } from "@/types";
@@ -5,7 +6,6 @@ import { JobListing } from "@/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function getJobs(): Promise<JobListing[]> {
-  // Add '/v1' here to match the backend route
   const res = await fetch(`${API_URL}/api/v1/jobs`, {
     cache: "no-store",
   });
