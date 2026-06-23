@@ -60,9 +60,9 @@ public class JobController(IJobService jobService) : ControllerBase
     }
 
     // ── 3. POST /jobs (CREATE) ────────────────────────────────────────
-    [Authorize(Roles = "Employer")]
+    //[Authorize(Roles = "Employer")]
     [HttpPost]
-    [EnableRateLimiting("post-listing")]
+    //[EnableRateLimiting("post-listing")]
     public async Task<ActionResult<JobResponse>> CreateJobAsync([FromBody] CreateJobRequest request)
     {
         if (!ModelState.IsValid)

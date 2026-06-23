@@ -6,11 +6,12 @@ import { fetchJobs } from "@/lib/api";
 import JobCard from "@/components/JobCard";
 import { cn } from "@/lib/utils";
 import { JobListSkeleton } from "@/components/JobCardSkeleton";
-// Import the ApplicationForm
 import { ApplicationForm } from "@/components/ApplicationForm";
+import { CreateJobForm } from "@/components/CreateJobForm"; // Add this import
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false); // Add this state
 
   const {
     data: jobs,
@@ -23,7 +24,6 @@ export default function Home() {
     queryFn: fetchJobs,
     staleTime: 0,
   });
-
 
   const jobList = jobs ?? [];
 
@@ -75,15 +75,23 @@ export default function Home() {
     );
   }
 
-
   const selectedJob = jobList.find((j) => j.id === selectedId);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4">
       <main className="mx-auto max-w-6xl w-full space-y-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Job Openings
-        </h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Job Openings
+          </h1>
+          {/* Add Job Button - Only this is new */}
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <span className="text-lg font-bold">+</span> Add Job
+          </button>
+        </div>
 
         {selectedJob && (
           <div
@@ -122,6 +130,11 @@ export default function Home() {
               applicantId="a1111111-1111-1111-1111-111111111111" // replace with real auth
             />
           </div>
+        )}
+
+        {/* Create Job Modal - This is new */}
+        {showCreateForm && (
+          <CreateJobForm onClose={() => setShowCreateForm(false)} />
         )}
       </main>
     </div>
