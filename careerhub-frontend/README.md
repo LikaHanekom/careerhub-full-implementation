@@ -437,3 +437,65 @@ Both components make separate network requests for the same data, causing unnece
 
   GET / 200 in 1461ms (next.js: 525ms, application-code: 936ms)
   GET / 200 in 206ms (next.js: 42ms, application-code: 163ms)
+
+
+# Pre Code README updates: Assignment 2.1 #
+ ## Question 1: cache: "no-store" vs Default ##
+
+cache: "no-store" tells Next.js NOT to cache the fetch response on the server. This is a Next.js server-side cache (not browser cache or CDN cache). The cache lives in Next.js's internal data cache (on the server).
+
+When to use default cached behavior:
+
+- For static data that rarely changes (e.g., company info, job categories)
+
+- For data that can be stale between revalidations
+
+- When you want to reduce server load and improve response times
+
+Difference from TanStack Query:
+
+TanStack Query caches on the client (browser) and can refetch on window focus
+
+Next.js fetch caching caches on the server - the data never reaches the browser until it's rendered
+
+TanStack Query is about client-side data management; Next.js fetch is about server-side rendering optimization
+
+## Question 2: The "use client" Boundary ##
+
+"use client" marks a module boundary - it tells Next.js that this file and everything it imports should run on the client.
+
+What the Server Component contributes:
+
+HTML structure with data already populated
+
+The initial HTML response sent to the browser
+
+What the Client Component contributes:
+
+Interactive JavaScript code (form handling, state management)
+
+Event handlers (onClick, onSubmit)
+
+React hooks (useState, useEffect)
+
+What the browser receives:
+
+Initial HTML: The Server Component's rendered output (job details, description, the form container)
+
+JavaScript: The Client Component's bundle (ApplicationForm code with all its validation logic)
+
+## Question 3: Why params.id is Always a String ##
+
+URLs are fundamentally strings - "42", "a1b2c3d4", "senior-engineer" are all strings in the URL path. Next.js doesn't try to guess types because the same route could receive different formats.
+
+For this assignment: No conversion is needed if the API accepts string GUIDs. It pass params.id directly to the fetch URL.
+
+## Question 4: What "layout persists" Means ##
+
+"Does not re-render" means:
+
+The component function is NOT called again
+DOM nodes are NOT destroyed and recreated
+State inside the layout is preserved
+Keeping layout data up to date:
+Use fetch with a short revalidate time, or use next/cache with revalidateTag() to invalidate the cache when data changes.
