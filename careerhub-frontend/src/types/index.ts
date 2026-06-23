@@ -9,6 +9,7 @@ export interface JobListing {
   title: string;
   company: string;
   location: string;
+  description: string;
   employmentType: EmploymentType; // mapped from backend
   salaryMin: number | null;
   salaryMax: number | null;
@@ -16,7 +17,6 @@ export interface JobListing {
   isActive: boolean;
   applicantCount: number;
   isAvailable: boolean;
-  description: string;
 }
 
 // types/index.ts

@@ -631,17 +631,11 @@ The skeleton appears IMMEDIATELY (no waiting). Content streams as it's ready. Wo
 </Suspense>
 
 ### 4. Build Gate Results
-PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> 
-                                                                                     npm run dev
+PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> npm run build
 
-> careerhub-frontend@0.1.0 dev
-> next dev
+> careerhub-frontend@0.1.0 build
+> next build
 
-▲ Next.js 16.2.9 (Turbopack)
-- Local:         http://localhost:3000
-- Network:       http://192.168.101.109:3000
-- Environments: .env.local
-✓ Ready in 1696ms
 ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
  We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
@@ -649,4 +643,26 @@ PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-front
  Detected additional lockfiles: 
    * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
 
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
 
+  Creating an optimized production build ...
+✓ Compiled successfully in 5.1s
+✓ Finished TypeScript in 7.3s    
+✓ Collecting page data using 11 workers in 2.7s    
+✓ Generating static pages using 11 workers (8/8) in 1774ms
+✓ Finalizing page optimization in 52ms    
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/applications
+├ ƒ /api/jobs
+├ ƒ /api/jobs/[id]
+├ ƒ /dashboard/listings
+├ ƒ /jobs
+└ ƒ /jobs/[id]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

@@ -35,6 +35,7 @@ export async function fetchJobs(): Promise<JobListing[]> {
     title: job.title,
     company: job.companyName,
     location: job.location,
+    description: job.description ??"",
     employmentType: job.type,
     salaryMin: job.salaryMin ?? null,
     salaryMax: job.salaryMax ?? null,

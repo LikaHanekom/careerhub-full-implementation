@@ -23,7 +23,7 @@ const createJobSchema = z.object({
     .min(2, 'Location must be at least 2 characters')
     .max(100, 'Location must not exceed 100 characters'),
   
-  employmentType: z.enum(['FullTime', 'PartTime', 'Contract', 'Casual']),
+  employmentType: z.enum(['FullTime', 'PartTime', 'Contract', 'Internship']),
   
   salaryMin: z.number()
     .min(0.01, 'Minimum salary must be greater than 0'),
