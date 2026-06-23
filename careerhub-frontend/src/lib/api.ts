@@ -56,7 +56,6 @@ export async function submitApplication(data: ApplicationRequest): Promise<Appli
 }
 
 export async function createJob(data: CreateJobFormData): Promise<CreateJobResponse> {
-  // Ensure the date is in UTC format
   const requestBody: CreateJobRequest = {
     title: data.title,
     companyId: data.companyId,
@@ -65,10 +64,10 @@ export async function createJob(data: CreateJobFormData): Promise<CreateJobRespo
     salaryMin: data.salaryMin,
     salaryMax: data.salaryMax,
     description: data.description,
-    expiresAt: data.expiresAt, // Already in UTC from the form
+    expiresAt: data.expiresAt, 
   };
 
-  console.log('📤 Creating job with:', requestBody);
+  console.log(' Creating job with:', requestBody);
 
   const result = await apiRequest<{ data: CreateJobResponse }>('/api/v1/jobs', {
     method: 'POST',

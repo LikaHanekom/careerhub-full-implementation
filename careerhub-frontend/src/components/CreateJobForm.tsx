@@ -8,9 +8,7 @@ import { createJob } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { CreateJobFormData } from '@/types';
 
-// ============================================
 // ZOD SCHEMA
-// ============================================
 
 const createJobSchema = z.object({
   title: z.string()
@@ -49,9 +47,8 @@ const createJobSchema = z.object({
 
 type CreateJobFormSchema = z.infer<typeof createJobSchema>;
 
-// ============================================
 // COMPONENT
-// ============================================
+
 
 interface CreateJobFormProps {
   onClose: () => void;
@@ -97,7 +94,6 @@ export function CreateJobForm({ onClose }: CreateJobFormProps) {
   const isBusy = isSubmitting || mutation.isPending;
 
   const onSubmit = async (data: CreateJobFormSchema) => {
-    // Convert the date to UTC ISO string format
     const utcDate = new Date(data.expiresAt).toISOString();
     
     const formData: CreateJobFormData = {
@@ -108,7 +104,7 @@ export function CreateJobForm({ onClose }: CreateJobFormProps) {
       salaryMin: data.salaryMin,
       salaryMax: data.salaryMax,
       description: data.description,
-      expiresAt: utcDate, // Send UTC date
+      expiresAt: utcDate, 
     };
     
     await mutation.mutateAsync(formData);
