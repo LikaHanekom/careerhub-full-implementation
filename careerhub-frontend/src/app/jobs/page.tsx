@@ -1,24 +1,13 @@
 import JobLinkCard from "@/components/JobLinkCard";
-import { JobListing } from "@/types";
+import { fetchJobs } from "@/lib/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+export const dynamic = "force-dynamic";
 
-async function getJobs(): Promise<JobListing[]> {
-  const res = await fetch(`${API_URL}/api/v1/jobs`, { cache: "no-store" });
-  
-  if (!res.ok) throw new Error(`Failed: ${res.status}`);
-
-  const envelope = await res.json();
-  
-  console.log("Full API Response Keys:", Object.keys(envelope));
-  
-  console.log("Attempted access of .items:", envelope.items);
-
-  // Return data based on inspection
-  return envelope.data || [];
+// Server Component data loader
+async function getJobs() {
+  return fetchJobs({ next: { tags: ['jobs'] } });
 }
 
-// Server Component
 export default async function JobsPage() {
   const jobs = await getJobs();
 
@@ -28,6 +17,7 @@ export default async function JobsPage() {
         <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
           All Jobs
         </h1>
+
         <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
           {jobs.length} positions available
         </p>

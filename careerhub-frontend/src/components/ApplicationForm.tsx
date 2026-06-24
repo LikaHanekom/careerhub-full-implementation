@@ -3,10 +3,12 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { submitApplication } from '@/lib/api';
+import { revalidateJobs } from '@/app/actions/revalidateJobs';
 import { ApplicationRequest } from '@/types';
 import { cn } from '@/lib/utils'; 
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
 const phoneRegex = /^\+?[\d\s\-()]{8,15}$/;
 
@@ -83,7 +85,6 @@ interface ApplicationFormProps {
 }
 
 export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFormProps) {
-  const queryClient = useQueryClient();
 
   const {
     register,
@@ -100,32 +101,22 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
     },
   });
 
-  const watchAvailableImmediately = watch('availableImmediately'); //Checks for availableImmediately box check
-  //Stretch B: Optimistic feedback
+  const watchAvailableImmediately = watch("availableImmediately");
+  const router = useRouter();
+
   const mutation = useMutation({
-  mutationFn: submitApplication,
-  onMutate: async (newApplication) => {
-    await queryClient.cancelQueries({ queryKey: ['jobs'] });
-    const previousJobs = queryClient.getQueryData(['jobs']);
-    queryClient.setQueryData(['jobs'], (old: any) =>
-      old.map((job: any) =>
-        job.id === newApplication.jobListingId 
-          ? { ...job, isApplied: true }
-          : job
-      )
-    );
-    return { previousJobs };
-  },
-  onError: (err, newApplication, context) => {
-    queryClient.setQueryData(['jobs'], context?.previousJobs);
-  },
-  onSettled: () => {
-    queryClient.invalidateQueries({ queryKey: ['jobs'] });
-  },
-  onSuccess: () => {
-    reset();
-  },
-});
+    mutationFn: submitApplication,
+
+    onSuccess: async () => {
+      reset();
+      await revalidateJobs();
+      router.refresh();
+    },
+
+    onError: (error) => {
+      console.error("Application submission failed:", error);
+    },
+  });
 
   const isBusy = isSubmitting || mutation.isPending;
 

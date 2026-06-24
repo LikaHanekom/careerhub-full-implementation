@@ -666,3 +666,153 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
+
+
+
+## Assignment 2.2 ##
+
+## Question 1: Choosing a Cache Strategy
+
+| Data Type | Strategy | Reason |
+| :--- | :--- | :--- |
+| **Jobs List** | `next: { tags: ["jobs"] }` | Job listings are largely static between employer updates. Caching reduces server load and optimizes response times. |
+| **Single Job Detail** | `next: { tags: ["jobs"] }` | Consistency is key; using the same tag ensures the detail view stays synced with the list view. |
+| **Application Statistics** | `cache: "no-store"` | Highly dynamic data. Since there is no clean trigger to invalidate the cache, fresh fetches are required. |
+
+### Why both routes share the "jobs" tag:
+Routes such as `/jobs/page.tsx` and `/dashboard/listings/page.tsx` both consume job data. By using a shared tag, a single call to `revalidateTag("jobs")` ensures that both views are updated simultaneously when a job status changes.
+
+---
+
+## Question 2: Why `revalidateTag` Works Across Routes
+
+* **Global Storage:** The tag cache resides at the server level (in memory or file system).
+* **Boundary Crossing:** All Server Components share this same global cache. When a Server Action executes, it has access to the global cache, allowing it to invalidate data across different route boundaries using the tag as the key.
+* **Post-Revalidation:** Upon the first request after revalidation, the cache is clear; Next.js fetches fresh data from the source, performing this operation on the server before serving the HTML to the user.
+
+---
+
+## Question 3: Handling `Promise.all` Failure
+
+When using `Promise.all`, if one function (e.g., `getApplicationStats()`) fails, the entire page will fail to render, triggering your `error.tsx` boundary.
+
+### Recommended Approaches for Partial Data:
+
+1.  **Try/Catch with Fallback:**
+    ```tsx
+    const [jobs, stats] = await Promise.all([
+      getJobs(),
+      getApplicationStats().catch(() => []) // Fallback to empty array
+    ]);
+    ```
+
+2.  **Independent Suspense & Error Boundaries (Recommended for Production):**
+    ```tsx
+    <Suspense fallback={<StatsSkeleton />}>
+      <ErrorBoundary fallback={<StatsError />}>
+        <ApplicationsSummary />
+      </ErrorBoundary>
+    </Suspense>
+    ```
+    *Why:* This keeps the page partially functional and preserves the benefits of streaming.
+
+---
+
+## Question 4: Two-Boundary vs. One-Boundary
+
+### The Benefit of Multiple Suspense Boundaries
+
+Using two separate `Suspense` boundaries allows for granular loading. If one component is faster than the other, the user receives that part of the UI earlier.
+
+| Time | Two-Boundary Experience | One-Boundary Experience |
+| :--- | :--- | :--- |
+| **T=0ms** | Page heading, both skeletons | Page heading, both skeletons |
+| **T=120ms** | Real `ApplicationsSummary` visible | Both still loading (waiting for slow) |
+| **T=450ms** | Real `ListingsTable` visible | Both now visible |
+
+Wrapping multiple components in a single boundary forces the fast component to wait for the slow one, negating the primary performance benefit of React Streaming.
+
+# Assignment 2.2 -After Coding Updates
+
+---
+
+## 1. Tracing the close action end to end
+
+When the employer clicks the **“Close”** button, the interaction starts in the `CloseJobButton` Client Component in the browser. The button submits a form using `useActionState`, which triggers the `closeJobListing` Server Action instead of a traditional client-side fetch.
+
+Once triggered, the form data (specifically the `jobId`) is sent from the browser to the Next.js server action layer, where `closeJobListing(prevState, formData)` executes on the server. The first step inside the action is validation — if the `jobId` is missing, the function immediately returns an error state without making any network request.
+
+If valid, the Server Action performs a server-side `PATCH` request to the backend API (`/api/jobs/{id}`) with `{ status: "Closed" }`. This request is not visible in the browser DevTools because it originates from the server, not the client.
+
+If the PATCH request succeeds, the backend updates the job inside its in-memory dataset and returns the updated job object, including the new status. The Server Action then calls `revalidateTag("jobs")`, which invalidates all cached Next.js fetches tagged with `"jobs"` across the application.
+
+The cache invalidation happens on the Next.js server cache layer, not in the browser. This means any previously cached responses for `/jobs` or `/dashboard/listings` are marked stale.
+
+Finally, the Server Action returns a success state containing the job title. On the client side, `useActionState` receives this response and updates the UI to show confirmation.
+
+When a candidate later visits or refreshes `/jobs`, the page triggers a new server render. Because the `"jobs"` tag was invalidated, Next.js performs a fresh fetch to the backend API instead of serving cached data, ensuring the updated **“Closed”** status is reflected immediately.
+
+---
+
+## 2. Why two Suspense boundaries are better than one here
+
+With two independent Suspense boundaries, the dashboard streams content progressively.
+
+At around **T = 120ms**, `ApplicationsSummary` resolves first because it performs a single lightweight fetch. The user immediately sees the total applications card rendered.
+
+At the same time, `ListingsTable` is still loading because it performs two fetches (`jobs` + stats) and must merge the results. Its skeleton remains visible while it resolves independently.
+
+If both components were wrapped in a single Suspense boundary, the entire dashboard would wait for the slowest component (`ListingsTable`). At **T = 120ms**, the user would still see only a loading skeleton for the whole section, even though `ApplicationsSummary` is already ready. This reduces perceived performance and delays useful UI unnecessarily.
+
+However, a single Suspense boundary would be the correct choice if both components depended on the same combined data request or if they needed to render atomically together.
+
+---
+
+## 3. The self-contained component trade-off
+
+`ListingsTable` is self-contained because it fetches both jobs and stats internally using `Promise.all`. This makes it highly reusable — it can be dropped into any page without requiring the parent to manage data fetching or props.
+
+However, this comes at a cost: if `ListingsTable` is rendered in multiple places (for example, dashboard, analytics page, and admin view), each instance will independently fetch the same data, potentially duplicating network requests and increasing server load.
+
+The prop-driven approach avoids this duplication by centralising data fetching in the parent. This improves efficiency and ensures a single shared data source. However, it reduces flexibility and breaks down easily in a Suspense streaming model, because the parent must now wait for all data before rendering children, eliminating granular loading states.
+
+In a system where `ListingsTable` is reused in five different places, I would still choose the self-contained approach because it prioritises modularity and compatibility with Suspense-based streaming. The trade-off in duplicated fetches is acceptable in this architecture because Next.js caching with tags significantly reduces repeated network costs.
+
+## 4. Gate
+PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> npm run build
+
+> careerhub-frontend@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.1s
+✓ Finished TypeScript in 9.8s    
+✓ Collecting page data using 13 workers in 2.6s    
+✓ Generating static pages using 13 workers (8/8) in 1701ms
+✓ Finalizing page optimization in 47ms    
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/applications
+├ ƒ /api/applications/stats
+├ ƒ /api/jobs
+├ ƒ /api/jobs/[id]
+├ ƒ /api/ping
+├ ƒ /dashboard/listings
+├ ƒ /jobs
+└ ƒ /jobs/[id]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

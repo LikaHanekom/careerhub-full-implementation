@@ -1,99 +1,37 @@
-
 import Link from "next/link";
-import {JobStatusBadge} from "@/components/JobStatusBadge";
-import { JobListing } from "@/types";
+import { Suspense } from "react";
+import ApplicationsSummary, {
+  ApplicationsSummarySkeleton,
+} from "@/components/ApplicationsSummary";
+import ListingsTable, {
+  ListingsTableSkeleton,
+} from "@/components/ListingsTable";
+import { CreateJobLauncher } from "@/components/CreateJobLauncher";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+export const dynamic = "force-dynamic";
 
-async function getJobs(): Promise<JobListing[]> {
-  const res = await fetch(`${API_URL}/api/v1/jobs`, {
-    cache: "no-store",
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to fetch jobs: ${res.status}`);
-  }
-  
-  const response = await res.json();
-  return response.data || []; 
-}
-
-// No "use client" - Server Component
-export default async function DashboardListingsPage() {
-  const jobs = await getJobs();
-
+export default function ListingsPage() {
   return (
-    <>
-      <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-        Job Listings
-      </h1>
-      <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-        {jobs.length} listings
-      </p>
+    <main className="p-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Employer Dashboard</h1>
+        <Link
+          href="/dashboard/listings?action=create"
+          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700"
+        >
+          Add New Job
+        </Link>
+      </div>
 
-      {jobs.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-gray-500 dark:text-gray-400">
-            No job listings found.
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Title
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Company
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Location
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((job) => (
-                <tr
-                  key={job.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
-                >
-                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                    {job.title}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                    {job.company}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                    {job.location}
-                  </td>
-                  <td className="px-4 py-3">
-                    <JobStatusBadge 
-                        employmentType={job.employmentType} 
-                        isActive={job.isActive}             
-                        />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/jobs/${job.id}`}
-                      className="text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
+      <Suspense fallback={<ApplicationsSummarySkeleton />}>
+        <ApplicationsSummary />
+      </Suspense>
+
+      <Suspense fallback={<ListingsTableSkeleton />}>
+        <ListingsTable />
+      </Suspense>
+
+      <CreateJobLauncher />
+    </main>
   );
 }
