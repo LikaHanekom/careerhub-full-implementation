@@ -666,3 +666,68 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
+
+
+
+## Assignment 2.2 ##
+
+## Question 1: Choosing a Cache Strategy
+
+| Data Type | Strategy | Reason |
+| :--- | :--- | :--- |
+| **Jobs List** | `next: { tags: ["jobs"] }` | Job listings are largely static between employer updates. Caching reduces server load and optimizes response times. |
+| **Single Job Detail** | `next: { tags: ["jobs"] }` | Consistency is key; using the same tag ensures the detail view stays synced with the list view. |
+| **Application Statistics** | `cache: "no-store"` | Highly dynamic data. Since there is no clean trigger to invalidate the cache, fresh fetches are required. |
+
+### Why both routes share the "jobs" tag:
+Routes such as `/jobs/page.tsx` and `/dashboard/listings/page.tsx` both consume job data. By using a shared tag, a single call to `revalidateTag("jobs")` ensures that both views are updated simultaneously when a job status changes.
+
+---
+
+## Question 2: Why `revalidateTag` Works Across Routes
+
+* **Global Storage:** The tag cache resides at the server level (in memory or file system).
+* **Boundary Crossing:** All Server Components share this same global cache. When a Server Action executes, it has access to the global cache, allowing it to invalidate data across different route boundaries using the tag as the key.
+* **Post-Revalidation:** Upon the first request after revalidation, the cache is clear; Next.js fetches fresh data from the source, performing this operation on the server before serving the HTML to the user.
+
+---
+
+## Question 3: Handling `Promise.all` Failure
+
+When using `Promise.all`, if one function (e.g., `getApplicationStats()`) fails, the entire page will fail to render, triggering your `error.tsx` boundary.
+
+### Recommended Approaches for Partial Data:
+
+1.  **Try/Catch with Fallback:**
+    ```tsx
+    const [jobs, stats] = await Promise.all([
+      getJobs(),
+      getApplicationStats().catch(() => []) // Fallback to empty array
+    ]);
+    ```
+
+2.  **Independent Suspense & Error Boundaries (Recommended for Production):**
+    ```tsx
+    <Suspense fallback={<StatsSkeleton />}>
+      <ErrorBoundary fallback={<StatsError />}>
+        <ApplicationsSummary />
+      </ErrorBoundary>
+    </Suspense>
+    ```
+    *Why:* This keeps the page partially functional and preserves the benefits of streaming.
+
+---
+
+## Question 4: Two-Boundary vs. One-Boundary
+
+### The Benefit of Multiple Suspense Boundaries
+
+Using two separate `Suspense` boundaries allows for granular loading. If one component is faster than the other, the user receives that part of the UI earlier.
+
+| Time | Two-Boundary Experience | One-Boundary Experience |
+| :--- | :--- | :--- |
+| **T=0ms** | Page heading, both skeletons | Page heading, both skeletons |
+| **T=120ms** | Real `ApplicationsSummary` visible | Both still loading (waiting for slow) |
+| **T=450ms** | Real `ListingsTable` visible | Both now visible |
+
+Wrapping multiple components in a single boundary forces the fast component to wait for the slow one, negating the primary performance benefit of React Streaming.
