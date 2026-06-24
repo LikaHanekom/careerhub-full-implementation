@@ -1,138 +1,76 @@
 import Link from "next/link";
-import { fetchInternalApi } from "@/lib/internal-api";
+import { getInternalApiBaseUrl } from "@/lib/internal-api";
 import { JobListing } from "@/types";
-
 export const dynamic = "force-dynamic";
-
-interface ApplicationStats {
+interface ApplicationStat {
   jobId: string;
   applicationCount: number;
 }
-
 async function getJobs(): Promise<JobListing[]> {
-  return fetchInternalApi<JobListing[]>("/api/jobs", {
+  const res = await fetch(`${getInternalApiBaseUrl()}/api/jobs`, {
     next: { tags: ["jobs"] },
   });
+  if (!res.ok) throw new Error("Failed to fetch jobs");
+  return res.json();
 }
-
-async function getApplicationStats(): Promise<ApplicationStats[]> {
-  return fetchInternalApi<ApplicationStats[]>("/api/applications/stats", {
-    cache: "no-store",
-  });
+async function getApplicationStats(): Promise<ApplicationStat[]> {
+  const res = await fetch(
+    `${getInternalApiBaseUrl()}/api/applications/stats`,
+    { cache: "no-store" }
+  );
+  // Graceful fallback — stats failure should never break the listings table
+  if (!res.ok) return [];
+  return res.json();
 }
-
-export default async function DashboardListingsPage() {
-  const [jobs, stats] = await Promise.all([
-    getJobs(),
-    getApplicationStats(),
-  ]);
-
-  const statsMap = new Map<string, number>(
+export default async function ListingsPage() {
+  const [jobs, stats] = await Promise.all([getJobs(), getApplicationStats()]);
+  const statsByJobId = Object.fromEntries(
     stats.map((s) => [s.jobId, s.applicationCount])
   );
-
   return (
-    <>
-      <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-        Job Listings
-      </h1>
-
-      <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-        {jobs.length} listings
-      </p>
-
-      {jobs.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-gray-500 dark:text-gray-400">
-            No job listings found.
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Title
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Company
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Location
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Applications
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Action
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {jobs.map((job) => {
-                const appCount = statsMap.get(job.id) || 0;
-
-                return (
-                  <tr
-                    key={job.id}
-                    className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/50"
-                  >
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
-                      {job.title}
-                    </td>
-
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {job.company}
-                    </td>
-
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {job.location}
-                    </td>
-
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {job.employmentType}
-                    </td>
-
-                    {/* REAL STATUS LOGIC (no fake type needed) */}
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full font-medium ${
-                          job.isActive
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                        }`}
-                      >
-                        {job.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
-                      {appCount}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/jobs/${job.id}`}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
+    <main className="p-8">
+      <h1 className="text-2xl font-semibold mb-6">Job Listings</h1>
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b text-left text-gray-500">
+            <th className="pb-3 pr-4 font-medium">Title</th>
+            <th className="pb-3 pr-4 font-medium">Company</th>
+            <th className="pb-3 pr-4 font-medium">Location</th>
+            <th className="pb-3 pr-4 font-medium">Status</th>
+            <th className="pb-3 pr-4 font-medium">Applications</th>
+            <th className="pb-3 font-medium">View</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jobs.map((job) => (
+            <tr key={job.id} className="border-b hover:bg-gray-50">
+              <td className="py-3 pr-4">{job.title}</td>
+              <td className="py-3 pr-4">{job.company}</td>
+              <td className="py-3 pr-4">{job.location}</td>
+              <td className="py-3 pr-4">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    job.isActive
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {job.isActive ? "Active" : "Closed"}
+                </span>
+              </td>
+              <td className="py-3 pr-4">{statsByJobId[job.id] ?? 0}</td>
+              <td className="py-3">
+                <Link
+                  href={`/jobs/${job.id}`}
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  View
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </main>
   );
 }
