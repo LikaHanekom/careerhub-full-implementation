@@ -1,16 +1,14 @@
 import JobLinkCard from "@/components/JobLinkCard";
+import { fetchInternalApi } from "@/lib/internal-api";
 import { JobListing } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+export const dynamic = "force-dynamic";
 
 async function getJobs(): Promise<JobListing[]> {
-  const res = await fetch(`${API_URL}/api/jobs`, {
-    next: { tags: ["jobs"] }
+  return fetchInternalApi<JobListing[]>("/api/jobs", {
+    next: { tags: ["jobs"] },
   });
-  if (!res.ok) {
-    throw new Error(`Failed to fetch jobs: ${res.status}`);
-  }
-  return res.json();
 }
 
 // No "use client" - Server Component

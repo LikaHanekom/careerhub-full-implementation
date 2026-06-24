@@ -4,7 +4,7 @@ import { jobs } from "@/data/jobs";
 // Applications counts
 const mockStats = jobs.map(job => ({
   jobId: job.id,
-  applicationCount: Math.floor(Math.random() * 50) + 1 // 1-50 applications
+  applicationCount: job.applicantCount || Math.floor(Math.random() * 50) + 1
 }));
 
 export async function GET() {

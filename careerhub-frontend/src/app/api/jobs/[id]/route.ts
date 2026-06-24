@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { jobs } from "@/data/jobs";
 
 export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const job = jobs.find((j) => j.id === params.id);
+  // Await the params since it's now a Promise
+  const { id } = await params;
+  const job = jobs.find(j => j.id === id);
 
   if (!job) {
     return NextResponse.json(
       {
-        title: "Not Found",
-        detail: `No job with id "${params.id}"`,
-        status: 404,
+        title: "Job Not Found",
+        detail: `No job found with ID: ${id}`,
+        status: 404
       },
       { status: 404 }
     );
@@ -21,55 +23,72 @@ export async function GET(
   return NextResponse.json(job);
 }
 
+// PATCH handler - updated for Next.js 16
 export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const job = jobs.find((j) => j.id === params.id);
+  // Await the params since it's now a Promise
+  const { id } = await params;
+  const jobIndex = jobs.findIndex(j => j.id === id);
 
-  if (!job) {
+  if (jobIndex === -1) {
     return NextResponse.json(
       {
-        title: "Not Found",
-        detail: `No job with id "${params.id}"`,
-        status: 404,
+        title: "Job Not Found",
+        detail: `No job found with ID: ${id}`,
+        status: 404
       },
       { status: 404 }
     );
   }
 
-  let body: unknown;
+  // Parse request body
+  let body;
   try {
-    body = await req.json();
+    body = await request.json();
   } catch {
     return NextResponse.json(
       {
         title: "Bad Request",
-        detail: "Request body must be valid JSON",
-        status: 400,
+        detail: "Invalid JSON body",
+        status: 400
       },
       { status: 400 }
     );
   }
 
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    !("isActive" in body) ||
-    typeof (body as Record<string, unknown>).isActive !== "boolean"
-  ) {
+  // Check if status or isAvailable field is present
+  if (!body.status && body.isAvailable === undefined) {
     return NextResponse.json(
       {
         title: "Bad Request",
-        detail: '"isActive" field is required and must be a boolean',
-        status: 400,
+        detail: "status or isAvailable field is required",
+        status: 400
       },
       { status: 400 }
     );
   }
 
-  // Mutate in place — persists for the server process lifetime
-  job.isActive = (body as { isActive: boolean }).isActive;
+  // Update the job
+  const updatedJob = { 
+    ...jobs[jobIndex], 
+    ...(body.status && { status: body.status }),
+    ...(body.isAvailable !== undefined && { isAvailable: body.isAvailable })
+  };
+  jobs[jobIndex] = updatedJob;
 
-  return NextResponse.json(job);
+  return NextResponse.json(updatedJob);
+}
+
+// POST handler - updated for Next.js 16
+export async function POST() {
+  return NextResponse.json(
+    {
+      title: "Method Not Allowed",
+      detail: "POST is not supported for this endpoint",
+      status: 405
+    },
+    { status: 405 }
+  );
 }

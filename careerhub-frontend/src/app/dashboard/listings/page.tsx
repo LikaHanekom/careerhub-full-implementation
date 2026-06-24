@@ -1,11 +1,8 @@
 import Link from "next/link";
+import { fetchInternalApi } from "@/lib/internal-api";
 import { JobListing } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_URL) {
-  throw new Error("NEXT_PUBLIC_API_URL is not defined");
-}
+export const dynamic = "force-dynamic";
 
 interface ApplicationStats {
   jobId: string;
@@ -13,27 +10,15 @@ interface ApplicationStats {
 }
 
 async function getJobs(): Promise<JobListing[]> {
-  const res = await fetch(`${API_URL}/api/jobs`, {
+  return fetchInternalApi<JobListing[]>("/api/jobs", {
     next: { tags: ["jobs"] },
   });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch jobs: ${res.status}`);
-  }
-
-  return res.json();
 }
 
 async function getApplicationStats(): Promise<ApplicationStats[]> {
-  const res = await fetch(`${API_URL}/api/applications/stats`, {
+  return fetchInternalApi<ApplicationStats[]>("/api/applications/stats", {
     cache: "no-store",
   });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch application stats: ${res.status}`);
-  }
-
-  return res.json();
 }
 
 export default async function DashboardListingsPage() {
