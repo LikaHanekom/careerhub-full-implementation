@@ -1,0 +1,40 @@
+[33ma931817[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mAssignment-2.2[m[33m)[m Replace tag jobs fetches with next: { tags: [jobs] }
+[33m02cb3b6[m Fix: GET /api/applications/stats and PATCH /api/jobs/[id] route handlers
+[33m05fc738[m add GET /api/applications/stats and PATCH /api/jobs/[id] route handlers
+[33m5679a02[m Initial README updates
+[33m380cfc1[m[33m ([m[1;31morigin/Assignment-2.1[m[33m, [m[1;32mAssignment-2.1[m[33m)[m Final README updates
+[33m2f7eecf[m README updates
+[33m3f4b2a1[m Add /dashboard layout and /dashboard/listings page update root layout navigation and home page
+[33m1e5ee41[m The Actual /jobs/[id] route with notFound and ApplicationForm composition
+[33m213f356[m /jobs/[id] route with notFound and ApplicationForm composition
+[33m3c63cb0[m Add: implement jobs[id] and route
+[33m50581d3[m Initial README updates
+[33m41d5220[m[33m ([m[1;32mAssignment-1.4[m[33m)[m Merge pull request #5 from LikaHanekom/Assignment-1.4
+[33m0c11bb7[m[33m ([m[1;31morigin/Assignment-1.4[m[33m)[m Update:JobForm
+[33m2e9002c[m Add: Implemented Company Adding JobListing
+[33m79f5cec[m Merge pull request #4 from LikaHanekom/Assignment-1.4
+[33m89d2034[m Add:Update
+[33me703a7b[m Merge pull request #3 from LikaHanekom/Assignment-1.4
+[33m88a1505[m Add: Updated README
+[33ma6fdfc3[m Add: Implemented stretch A and B
+[33m6cfa025[m Add: wire ApplicationForm into page.tsx on job selection
+[33m703638c[m Add: ApplicationForm — schema, form, mutation
+[33me901e4c[m Add:  submitApplication to api layer
+[33m51d6828[m Add: Application Request and Application response interfaces
+[33m4562be4[m  Add: POST /api/applications route handler with delay and validation
+[33m48f7b76[m Add: First Readme Update
+[33m51efa45[m[33m ([m[1;31morigin/Assignment-1.3[m[33m, [m[1;32mAssignment-1.3[m[33m)[m Update: Connecting to real API
+[33mda69b7a[m Merge pull request #2 from LikaHanekom/Assignment-1.3
+[33me61b9d6[m Update: Add comments
+[33m70a1204[m Merge pull request #1 from LikaHanekom/Assignment-1.3
+[33m42d3a4e[m Update: add route
+[33m7dddcf9[m Update: Readme
+[33m0a28053[m Assignment 1.3
+[33md5fd73d[m Add: README updates
+[33m95ef6c1[m Update: changed hardcoded array to useQuery
+[33mdcc9385[m Add: JobCardSkeleton and JobListSkeleton, updated UI and fixed tailwind
+[33mb7312c7[m Add .env.local, src/lib/api.ts
+[33mb58bf64[m Add: TanStack Query configuration
+[33mb0507fe[m Add: Part 2: Mock Backend
+[33m97796e9[m Add: README initial updates Assignment 1.3
+[33m7ccea08[m[33m ([m[1;32mmain[m[33m)[m Add: Update Main Layout

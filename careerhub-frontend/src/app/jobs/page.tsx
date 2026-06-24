@@ -4,21 +4,16 @@ import { JobListing } from "@/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function getJobs(): Promise<JobListing[]> {
-  const res = await fetch(`${API_URL}/api/v1/jobs`, { cache: "no-store" });
-  
-  if (!res.ok) throw new Error(`Failed: ${res.status}`);
-
-  const envelope = await res.json();
-  
-  console.log("Full API Response Keys:", Object.keys(envelope));
-  
-  console.log("Attempted access of .items:", envelope.items);
-
-  // Return data based on inspection
-  return envelope.data || [];
+  const res = await fetch(`${API_URL}/api/jobs`, {
+    next: { tags: ["jobs"] }
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch jobs: ${res.status}`);
+  }
+  return res.json();
 }
 
-// Server Component
+// No "use client" - Server Component
 export default async function JobsPage() {
   const jobs = await getJobs();
 

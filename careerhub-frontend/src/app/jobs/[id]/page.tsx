@@ -7,8 +7,8 @@ import { JobListing } from "@/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 async function getJob(id: string): Promise<JobListing | null> {
-  const res = await fetch(`${API_URL}/api/v1/jobs/${id}`, {
-    cache: "no-store",
+  const res = await fetch(`${API_URL}/api/jobs/${id}`, {
+    next: { tags: ["jobs"] }  // Changed from cache: "no-store"
   });
 
   if (res.status === 404) {
