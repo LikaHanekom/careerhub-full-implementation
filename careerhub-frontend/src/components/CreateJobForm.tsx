@@ -3,8 +3,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { createJob } from '@/lib/api';
+import { revalidateJobs } from '@/app/actions/revalidateJobs';
 import { cn } from '@/lib/utils';
 import { CreateJobFormData } from '@/types';
 
@@ -55,7 +57,7 @@ interface CreateJobFormProps {
 }
 
 export function CreateJobForm({ onClose }: CreateJobFormProps) {
-  const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Get tomorrow's date in UTC for default value
   const getDefaultExpiryDate = () => {
@@ -81,8 +83,9 @@ export function CreateJobForm({ onClose }: CreateJobFormProps) {
 
   const mutation = useMutation({
     mutationFn: createJob,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    onSuccess: async () => {
+      await revalidateJobs();
+      router.refresh();
       reset();
       onClose();
     },

@@ -1,17 +1,13 @@
 import JobLinkCard from "@/components/JobLinkCard";
-import { fetchInternalApi } from "@/lib/internal-api";
-import { JobListing } from "@/types";
-
+import { fetchJobs } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-async function getJobs(): Promise<JobListing[]> {
-  return fetchInternalApi<JobListing[]>("/api/jobs", {
-    next: { tags: ["jobs"] },
-  });
+// Server Component data loader
+async function getJobs() {
+  return fetchJobs({ next: { tags: ['jobs'] } });
 }
 
-// No "use client" - Server Component
 export default async function JobsPage() {
   const jobs = await getJobs();
 
@@ -21,6 +17,7 @@ export default async function JobsPage() {
         <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
           All Jobs
         </h1>
+
         <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
           {jobs.length} positions available
         </p>

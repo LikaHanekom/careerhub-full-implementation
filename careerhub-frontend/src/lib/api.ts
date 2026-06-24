@@ -1,5 +1,5 @@
 //bridge between application and backend API
-import { JobListing, ApplicationRequest, ApplicationResponse, CreateJobFormData, CreateJobResponse, CreateJobRequest } from "@/types";
+import { JobListing, ApplicationRequest, ApplicationResponse, CreateJobFormData, CreateJobResponse, CreateJobRequest, BackendJobResponse ,EmploymentType  } from "@/types";
 
 // Centralized config
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -26,25 +26,42 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
   return response.json();
 }
 
-// Clean, readable exports
-export async function fetchJobs(): Promise<JobListing[]> {
-  const result = await apiRequest<{ data: any[] }>('/api/v1/jobs');
-  
-  return (result.data ?? []).map((job) => ({
-    id: job.id,
-    title: job.title,
-    company: job.companyName,
-    location: job.location,
-    description: job.description ??"",
-    employmentType: job.type,
-    salaryMin: job.salaryMin ?? null,
-    salaryMax: job.salaryMax ?? null,
-    postedAt: job.postedAt,
-    isActive: job.isActive,
-    applicantCount: job.applicationCount ?? 0,
-    isAvailable: true,
-  }));
-}
+  // Clean, readable exports
+  type FetchOptions = RequestInit & {
+    next?: {
+      tags?: string[];
+      revalidate?: number;
+    };
+  };
+
+  interface PagedJobsResponse {
+    data: BackendJobResponse[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+  }
+
+  export async function fetchJobs(
+    options?: FetchOptions
+  ): Promise<JobListing[]> {
+    const result = await apiRequest<PagedJobsResponse>(
+      '/api/v1/jobs?page=1&pageSize=100',
+      options
+    );
+
+    return (result.data ?? []).map(mapJobResponse);
+  }
+
+  export async function fetchEmployerJobs(
+    options?: FetchOptions
+  ): Promise<JobListing[]> {
+    const result = await apiRequest<PagedJobsResponse>(
+      '/api/v1/jobs?page=1&pageSize=100&includeInactive=true',
+      options
+    );
+
+    return (result.data ?? []).map(mapJobResponse);
+  }
 
 export async function submitApplication(data: ApplicationRequest): Promise<ApplicationResponse> {
   return apiRequest<ApplicationResponse>('/api/v1/applications/apply', {
@@ -56,7 +73,40 @@ export async function submitApplication(data: ApplicationRequest): Promise<Appli
   });
 }
 
-export async function createJob(data: CreateJobFormData): Promise<CreateJobResponse> {
+
+export async function fetchJobById(
+  id: string,
+  options?: RequestInit
+): Promise<JobListing> {
+  const job = await apiRequest<BackendJobResponse>(`/api/v1/jobs/${id}`, options);
+  return mapJobResponse(job);
+}
+
+
+function mapJobResponse(job: BackendJobResponse): JobListing {
+  return {
+    id: job.id,
+    title: job.title,
+    company: job.company,
+    location: job.location,
+    description: job.description ?? "",
+
+    employmentType: job.type as EmploymentType,
+
+    salaryMin: job.salaryMin ?? null,
+    salaryMax: job.salaryMax ?? null,
+
+    postedAt: job.postedAt,
+    isActive: job.isActive,
+
+    applicantCount: job.applicationCount ?? 0,
+    isAvailable: job.isActive,
+  };
+}
+
+export async function createJob(
+  data: CreateJobFormData
+): Promise<CreateJobResponse> {
   const requestBody: CreateJobRequest = {
     title: data.title,
     companyId: data.companyId,
@@ -65,15 +115,16 @@ export async function createJob(data: CreateJobFormData): Promise<CreateJobRespo
     salaryMin: data.salaryMin,
     salaryMax: data.salaryMax,
     description: data.description,
-    expiresAt: data.expiresAt, 
+    expiresAt: data.expiresAt,
   };
 
-  console.log(' Creating job with:', requestBody);
+  console.log('Creating job with:', requestBody);
 
-  const result = await apiRequest<{ data: CreateJobResponse }>('/api/v1/jobs', {
-    method: 'POST',
-    body: JSON.stringify(requestBody),
-  });
-
-  return result.data;
+  return apiRequest<CreateJobResponse>(
+    '/api/v1/jobs',
+    {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    }
+  );
 }

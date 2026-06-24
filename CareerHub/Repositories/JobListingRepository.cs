@@ -35,6 +35,7 @@ namespace CareerHub.Api.Repositories
             // Return the raw entity so the service can check its properties or update it
             return await _context.JobListings
                 .Include(j => j.Company)
+                .Include(j => j.Applications)
                 .FirstOrDefaultAsync(j => j.Id == id);
         }
 
@@ -153,7 +154,10 @@ namespace CareerHub.Api.Repositories
             int totalCount = await query.CountAsync(); 
 
             // 2. Issue the Data fetch query with deterministic sort before Skip/Take 
-            var items = await query.OrderByDescending(j => j.PostedAt) 
+            var items = await query
+                                .Include(j => j.Company)
+                                .Include(j => j.Applications)
+                                .OrderByDescending(j => j.PostedAt) 
                                 .Skip((page - 1) * pageSize) //remember pageSize is the amount of joblistigns per page
                                 .Take(pageSize) 
                                 .ToListAsync(); 
@@ -168,7 +172,12 @@ namespace CareerHub.Api.Repositories
             int pageSize = filter.PageSize <= 0 ? 20 : filter.PageSize;
 
             // Establish the query root 
-            var query = _context.JobListings.Where(j => j.IsActive).AsQueryable(); 
+            var query = _context.JobListings.AsQueryable();
+
+            if (!filter.IncludeInactive)
+            {
+                query = query.Where(j => j.IsActive);
+            }
 
             // Safely evaluate optional filters
             if (!string.IsNullOrWhiteSpace(filter.Location))
@@ -216,6 +225,8 @@ namespace CareerHub.Api.Repositories
 
             // Slice boundaries over the database using your fixed local variables
             var items = await query
+                .Include(j => j.Company)
+                .Include(j => j.Applications)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(); 
@@ -257,6 +268,11 @@ namespace CareerHub.Api.Repositories
                 if (request.ExpiresAt.Value <= DateTime.UtcNow) 
                     throw new ArgumentException("ExpiresAt must be in the future");
                 listing.ExpiresAt = request.ExpiresAt.Value;
+            }
+
+            if (request.IsActive.HasValue)
+            {
+                listing.IsActive = request.IsActive.Value;
             }
 
             // Commit changes to PostgreSQL

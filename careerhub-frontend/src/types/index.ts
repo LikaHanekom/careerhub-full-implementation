@@ -81,3 +81,22 @@ export interface CreateJobFormData {
   description: string;
   expiresAt: string;  // Add expiration dat
 }
+
+export interface BackendJobResponse {
+  id: string;
+  title: string;
+  description: string;
+  company: string;
+  location: string;
+  type: string; 
+  postedAt: string;
+  isActive: boolean;
+
+  salaryMin: number | null;
+  salaryMax: number | null;
+
+  companyId: string;
+
+  applicationCount: number;
+  expiresAt?: string | null;
+}

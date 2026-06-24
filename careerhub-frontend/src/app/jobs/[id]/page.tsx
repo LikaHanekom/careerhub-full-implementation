@@ -2,15 +2,12 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ApplicationForm } from "@/components/ApplicationForm";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
-import { fetchInternalApi } from "@/lib/internal-api";
+import { fetchJobById } from '@/lib/api';
 import { JobListing } from "@/types";
 
 export const dynamic = "force-dynamic";
-
-async function getJob(id: string): Promise<JobListing> {
-  return fetchInternalApi<JobListing>(`/api/jobs/${id}`, {
-    next: { tags: ["jobs"] },
-  });
+async function getJob(id: string) {
+  return fetchJobById(id, { next: { tags: ['jobs'] } });
 }
 
 export default async function JobDetailPage({
@@ -63,7 +60,7 @@ export default async function JobDetailPage({
           <ApplicationForm 
             jobId={job.id} 
             jobTitle={job.title} 
-            applicantId="current-user-id" 
+            applicantId="a1111111-1111-1111-1111-111111111111" 
           />
         )}
       </div>

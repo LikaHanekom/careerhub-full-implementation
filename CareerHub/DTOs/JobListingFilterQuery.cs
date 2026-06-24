@@ -9,5 +9,6 @@ public record JobListingFilterQuery(
     string Sort = "postedAt", 
     string Dir = "desc",
     int Page = 1,         
-    int PageSize = 20
+    int PageSize = 20,
+    bool IncludeInactive = false
 );

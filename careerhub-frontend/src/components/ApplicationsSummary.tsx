@@ -1,16 +1,6 @@
-interface ApplicationStat {
-  jobId: string;
-  applicationCount: number;
-}
+import { fetchEmployerJobs } from "@/lib/api";
 
-async function getApplicationStats(): Promise<ApplicationStat[]> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/applications/stats`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) return [];
-  return res.json();
-}
+export const dynamic = "force-dynamic";
 
 export function ApplicationsSummarySkeleton() {
   return (
@@ -19,8 +9,8 @@ export function ApplicationsSummarySkeleton() {
 }
 
 export default async function ApplicationsSummary() {
-  const stats = await getApplicationStats();
-  const total = stats.reduce((sum, s) => sum + s.applicationCount, 0);
+  const jobs = await fetchEmployerJobs({ next: { tags: ["jobs"] } });
+  const total = jobs.reduce((sum, job) => sum + job.applicantCount, 0);
 
   return (
     <div className="rounded-xl border border-gray-200 p-6 w-56 mb-6">

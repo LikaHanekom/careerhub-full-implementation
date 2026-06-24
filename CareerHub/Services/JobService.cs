@@ -62,7 +62,10 @@ public class JobService : IJobService
             Type = job.Type,
             PostedAt = job.PostedAt,
             IsActive = job.IsActive,
-            Company = job.Company?.Name ?? "Unknown"
+            Company = job.Company?.Name ?? "Unknown",
+            SalaryMin = job.SalaryMin,
+            SalaryMax = job.SalaryMax,
+            ApplicationCount = job.Applications.Count
         };
     }
 
@@ -218,7 +221,10 @@ public class JobService : IJobService
             Type = job.Type,
             PostedAt = job.PostedAt,
             IsActive = job.IsActive,
-            Company = job.Company?.Name ?? "Unknown"
+            Company = job.Company?.Name ?? "Unknown",
+            SalaryMin = job.SalaryMin,
+            SalaryMax = job.SalaryMax,
+            ApplicationCount = job.Applications.Count
         });
 
         return new PagedResponse<JobResponse>(itemResponses, totalCount, page, pageSize);
@@ -237,7 +243,10 @@ public class JobService : IJobService
             Type = job.Type,
             PostedAt = job.PostedAt,
             IsActive = job.IsActive,
-            Company = job.Company?.Name ?? "Unknown"
+            Company = job.Company?.Name ?? "Unknown",
+            SalaryMin = job.SalaryMin,
+            SalaryMax = job.SalaryMax,
+            ApplicationCount = job.Applications.Count
         });
 
         int displayPage = filter.Page <= 0 ? 1 : filter.Page;

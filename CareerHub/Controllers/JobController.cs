@@ -136,7 +136,7 @@ public class JobController(IJobService jobService) : ControllerBase
     }
 
     [HttpPatch("{id}")]
-    [Authorize(Roles = "Employer,Admin")] 
+    //[Authorize(Roles = "Employer,Admin")]
     public async Task<ActionResult<JobResponse>> PatchJob(Guid id, [FromBody] UpdateJobListingRequest request)
     {
         var response = await _jobService.PatchJobAsync(id, request);
