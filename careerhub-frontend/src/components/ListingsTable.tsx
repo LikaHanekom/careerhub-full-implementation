@@ -16,12 +16,12 @@ export function ListingsTableSkeleton() {
   );
 }
 
-async function getJobs(): Promise<JobListing[]> {
+async function getJobs(): Promise<JobListing[]> { //stream triggered here
   return fetchEmployerJobs({ next: { tags: ["jobs"] } });
 }
 
 export default async function ListingsTable() {
-  const jobs = await getJobs();
+  const jobs = await getJobs(); //promise is made
 
   if (jobs.length === 0) {
     return (

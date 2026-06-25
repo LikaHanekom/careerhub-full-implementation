@@ -1,11 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import ApplicationsSummary, {
-  ApplicationsSummarySkeleton,
-} from "@/components/ApplicationsSummary";
-import ListingsTable, {
-  ListingsTableSkeleton,
-} from "@/components/ListingsTable";
+import ApplicationsSummary, {ApplicationsSummarySkeleton,} from "@/components/ApplicationsSummary";
+import ListingsTable, { ListingsTableSkeleton,} from "@/components/ListingsTable";
 import { CreateJobLauncher } from "@/components/CreateJobLauncher";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +19,7 @@ export default function ListingsPage() {
         </Link>
       </div>
 
-      <Suspense fallback={<ApplicationsSummarySkeleton />}>
+      <Suspense fallback={<ApplicationsSummarySkeleton />}> 
         <ApplicationsSummary />
       </Suspense>
 

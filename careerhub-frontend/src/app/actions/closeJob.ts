@@ -25,7 +25,6 @@ export async function closeJobListing(
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        // Your type uses isActive: boolean, not a status string
         body: JSON.stringify({ isActive: false }),
       }
     );
