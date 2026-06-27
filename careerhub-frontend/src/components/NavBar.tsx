@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { signOut } from "@/auth";
 import { Session } from "next-auth";
+import SignOutButton from "@/components/SignOutButton";
 
 export default function NavBar({ session }: { session: Session | null }) {
   const isSignedIn = !!session;
@@ -49,19 +49,8 @@ export default function NavBar({ session }: { session: Session | null }) {
                 </span>
               </div>
 
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/" });
-                }}
-              >
-                <button
-                  type="submit"
-                  className="rounded bg-red-500 px-4 py-2 text-sm text-white hover:bg-red-600"
-                >
-                  Sign Out
-                </button>
-              </form>
+              {/* v4: signOut is client-side only — delegate to Client Component */}
+              <SignOutButton />
             </>
           )}
 
