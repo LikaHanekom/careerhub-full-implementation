@@ -886,3 +886,10 @@ If a deeply nested Client Component requires the session:
 # 3. Dashboard CloseJobButton 
 
 The CloseJobButton is rendered unconditionally on the dashboard. No role check is needed in the component or page because middleware guarantees that only authenticated employers ever reach /dashboard/*. Any unauthenticated user is redirected to /login and any candidate is redirected to /jobs before the page renders. Trusting middleware for this is correct because the redirect happens at the edge, before any page code executes — the component is simply never served to anyone who shouldn't see it.
+
+# Part 7
+Location filter (text input vs select): A free-text input was chosen because locations in the dataset are arbitrary strings. A select would require knowing all possible values upfront.
+
+No Zustand persist middleware: The view preference is session-level UI state — it resets on refresh intentionally. If persistence were needed, persist with storage: localStorage and key "dashboard-view" would be appropriate.
+
+Why ListingsTable can't call useStore: It's an async Server Component. Hooks only run in the browser during React's render cycle; async Server Components execute on the server before hydration. The solution is a thin Client Component wrapper (ListingsTableWrapper) that reads from Zustand and passes values down as plain props.
