@@ -1,15 +1,16 @@
 import JobLinkCard from "@/components/JobLinkCard";
-import { fetchJobs } from "@/lib/api";
+import JobFilters from "@/components/JobFilters";
+import { getJobs } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-// Server Component data loader
-async function getJobs() {
-  return fetchJobs({ next: { tags: ['jobs'] } });
-}
-
-export default async function JobsPage() {
-  const jobs = await getJobs();
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; location?: string; status?: string }>;
+}) {
+  const { q, location, status } = await searchParams;
+  const jobs = await getJobs({ q, location, status });
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 dark:bg-gray-900">
@@ -22,10 +23,14 @@ export default async function JobsPage() {
           {jobs.length} positions available
         </p>
 
+        <div className="mb-6">
+          <JobFilters />
+        </div>
+
         {jobs.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
             <p className="text-gray-500 dark:text-gray-400">
-              No jobs found at this time.
+              No jobs match your filters.
             </p>
           </div>
         ) : (

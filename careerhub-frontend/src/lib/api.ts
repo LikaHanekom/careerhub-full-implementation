@@ -20,7 +20,8 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || errorData.title || `Request failed with status ${response.status}`);
+    console.error(`API ${response.status} on ${endpoint}:`, JSON.stringify(errorData, null, 2));
+    throw new Error(errorData.detail || errorData.title || errorData.message || `Request failed with status ${response.status}`);
   }
 
   return response.json();
@@ -127,4 +128,38 @@ export async function createJob(
       body: JSON.stringify(requestBody),
     }
   );
+}
+
+export type JobFilters = {
+  q?: string;
+  location?: string;
+  status?: string;
+};
+
+export async function getJobs(filters?: JobFilters): Promise<JobListing[]> {
+  const jobs = await fetchJobs({ next: { tags: ["jobs"] } });
+
+  let results = jobs;
+
+  if (filters?.q) {
+    const q = filters.q.toLowerCase();
+    results = results.filter(
+      (j) =>
+        j.title.toLowerCase().includes(q) ||
+        j.company.toLowerCase().includes(q)
+    );
+  }
+
+  if (filters?.location) {
+    const loc = filters.location.toLowerCase();
+    results = results.filter((j) =>
+      j.location.toLowerCase().includes(loc)
+    );
+  }
+
+  if (filters?.status === "open") {
+    results = results.filter((j) => j.isActive);
+  }
+
+  return results;
 }

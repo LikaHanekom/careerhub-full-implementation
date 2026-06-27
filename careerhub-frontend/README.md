@@ -816,3 +816,199 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
+
+# Assignment 2.3
+
+## 1. Route Protection & Roles
+
+CareerHub utilizes middleware to enforce security at the edge, ensuring unauthenticated or unauthorized users are redirected before pages are rendered.
+
+| Route | Authorized Roles | Unauthorized Behavior | Handling Logic |
+| :--- | :--- | :--- | :--- |
+| `/jobs` | Public (All) | N/A | Middleware |
+| `/jobs/[id]` | Public (All) | N/A | Middleware |
+| `/dashboard` | Employer | Redirect to `/login` or `/jobs` | Middleware |
+| `/dashboard/listings`| Employer | Redirect to `/login` or `/jobs` | Middleware |
+| `/login` | Guest (Anonymous)| Redirect to `/dashboard` | Middleware |
+
+### Authorization Philosophy
+*   **Why Middleware?** It serves as the single source of truth for security. Handling protection here prevents "flashes" of restricted content and avoids unnecessary database/data fetching for unauthorized requests.
+*   **Authentication vs. Authorization:** Redirecting an unauthenticated user to `/login` is an **Authentication** enforcement (who are you?). Redirecting a candidate away from the `/dashboard` is an **Authorization** enforcement (what are you allowed to do?). Both are handled in middleware to ensure consistent, secure behavior across the entire routing tree.
+
+---
+
+## 2. Session Object Design
+
+### Data Strategy
+*   **Include:** `id`, `email`, `role`, and `name`. These are sufficient for UI personalization and RBAC (Role-Based Access Control) checks.
+*   **Exclude:** Sensitive credentials (passwords), PII (home addresses), or large objects to prevent session bloat.
+
+### The "Session Bloat" Risk
+Excessive data in the JWT/Session increases the payload size. Since the JWT is stored in a cookie, exceeding size limits (typically 4KB) will break the application. Additionally, excessive data increases CPU overhead during the decryption/validation process on every request.
+
+### The Three-Step Relay
+To expose the role in the UI, the data must flow through these hooks:
+1.  **`authorize`**: Authenticates credentials and returns the user object with the role.
+2.  **`jwt`**: Injects the `role` into the encrypted JWT token.
+3.  **`session`**: Reads the `role` from the JWT token and attaches it to the `session` object, making it available to `auth()`.
+
+*Note: Forgetting to map the role in the `session` callback will result in the role being available in the token but hidden from the React components.*
+
+---
+
+## 3. Job Filters: State Management
+
+| Filter | Tool | Justification |
+| :--- | :--- | :--- |
+| **Keyword Search** | `nuqs` | Synchronizes state with the URL for bookmarking and sharing. |
+| **Location** | `nuqs` | Consistent UX with search; allows deep-linking to specific regions. |
+| **Status Toggle** | `useState` | Localized UI preference; usually does not require shareable links. |
+
+### Why `nuqs`?
+`nuqs` enables **URL-as-state**. Unlike `useState`, which resets on page refresh, `nuqs` preserves the filter values in the query string. This allows users to share a filtered view of jobs (e.g., "Remote" + "React") with others, significantly improving the user experience.
+
+---
+
+## 4. Layout & Component Architecture
+
+### Server Components & `auth()`
+Calling `await auth()` in `layout.tsx` is highly performant. Next.js caches this request for the duration of the page render. It is the idiomatic way to handle identity-aware layouts without creating client-side waterfalls.
+
+### Handling Nested Client Components
+If a deeply nested Client Component requires the session:
+1.  **Prefer Prop Drilling:** Pass the necessary session data from the Server Component parent.
+2.  **Fallback:** Use `useSession()` from `next-auth/react` only if the component requires real-time reactivity to session changes (e.g., a "Logout" button that needs to update the UI immediately).
+
+### `auth()` vs. `useSession()`
+*   **`auth()`**: Use in **Server Components**. It is the standard for data fetching, server-side route protection, and SSR.
+*   **`useSession()`**: Use in **Client Components**. It provides a reactive hook for the browser environment, allowing components to respond to changes in the authentication state (e.g., sign-in/sign-out transitions) without a full page reload.
+
+# 3. Dashboard CloseJobButton 
+
+The CloseJobButton is rendered unconditionally on the dashboard. No role check is needed in the component or page because middleware guarantees that only authenticated employers ever reach /dashboard/*. Any unauthenticated user is redirected to /login and any candidate is redirected to /jobs before the page renders. Trusting middleware for this is correct because the redirect happens at the edge, before any page code executes — the component is simply never served to anyone who shouldn't see it.
+
+# Part 7
+Location filter (text input vs select): A free-text input was chosen because locations in the dataset are arbitrary strings. A select would require knowing all possible values upfront.
+
+No Zustand persist middleware: The view preference is session-level UI state — it resets on refresh intentionally. If persistence were needed, persist with storage: localStorage and key "dashboard-view" would be appropriate.
+
+Why ListingsTable can't call useStore: It's an async Server Component. Hooks only run in the browser during React's render cycle; async Server Components execute on the server before hydration. The solution is a thin Client Component wrapper (ListingsTableWrapper) that reads from Zustand and passes values down as plain props.
+
+#AfterCoding README updates: 
+
+## The Role Redirect Decision
+
+The post-login redirect destination is based on the user's role because candidates and employers have fundamentally different use cases. Candidates should immediately see job listings, while employers need to manage their listings.
+
+The challenge was that `signIn` runs before the session exists, so the role isn't available in the Server Action. To solve this, I used `redirect: false` in the `signIn` call, then called `auth()` to get the session and determine the role before performing the redirect. This ensures the role is available at the point of redirect decision.
+
+## Middleware vs Page-Level Guards
+
+**Middleware Guard (Part 4):** The `/dashboard` route protection lives in middleware because it's a structural boundary. All routes under `/dashboard` should only be accessible to employers. Middleware is the right place because:
+- It runs before any component code, preventing unauthorized access at the network level
+- It centralizes access control for all dashboard routes
+- It's more secure than page-level checks
+
+**Page-Level Guard (Part 5):** The job detail page application form logic lives in the page component because:
+- The route itself is public (everyone should see job details)
+- The protection is about UI rendering, not route access
+- It's a conditional UI decision based on user context
+
+**General Principle:** Use middleware for route-level access control (who can see what pages) and page-level checks for component-level decisions (what to show on shared pages).
+
+## Why URL State for Job Filters
+
+I chose `nuqs` for job filters because:
+1. **Shareable URLs:** Users can share filtered views via URLs
+2. **Browser Navigation:** Back/forward buttons work naturally with URL state
+3. **Bookmarks:** Users can bookmark filtered searches
+4. **Server-side Rendering:** URL state is available on the server for initial render
+
+The URL state buys us:
+- Automatic state persistence across refreshes
+- Deep linking capability
+- SEO-friendly filter states
+
+## Why Zustand Without Persist for Dashboard View
+
+The dashboard view preference is session-level state because:
+- It's a UI preference, not user data that needs to be stored
+- Different browsing sessions can have different preferences
+- It reduces complexity and storage overhead
+
+If persistence was needed, I would use:
+- **Storage:** `localStorage` with a key like `careerhub-dashboard-prefs`
+- **Tradeoff:** localStorage is faster and works offline but is client-only and can become out of sync. A user preferences API endpoint would be more reliable across devices but requires backend infrastructure.
+
+## The Async Server Component / Store Boundary
+
+`ListingsTable` cannot call `useStore` because it's an async Server Component. Server Components can't use React hooks like `useStore` because they run on the server where React state doesn't exist.
+
+**Prop-Passing Pattern:**
+1. The page component (`DashboardListingsPage`) is a Client Component that reads from Zustand
+2. It passes the store values as props to `ListingsTable`
+3. `ListingsTable` remains a Server Component but receives data via props
+
+This maintains the benefits of Server Components (data fetching, SEO) while still using client-side state for UI preferences.
+
+## Stretch Goals
+
+### Stretch A - Defence in Depth
+
+The `ListingsTable` component includes a server-side check using `auth()` to conditionally render the `CloseJobButton`. This is defence-in-depth because:
+- Primary protection: Middleware ensures only employers can access `/dashboard`
+- Secondary protection: Even if `ListingsTable` were rendered elsewhere, the button wouldn't show
+
+### Stretch B - Persistent Dashboard Preference
+
+To implement persistence with Zustand:
+1. Use `persist` middleware from `zustand/middleware`
+2. Store in localStorage with key `careerhub-dashboard-prefs`
+3. Handle hydration by using `useStore` with hydration state checking
+
+The hydration mismatch occurs because `localStorage` is only available on the client. The server renders with default values, then the client hydrates with persisted values, causing a flash. This affects only persisted client-side stores, not in-memory stores, because in-memory stores have consistent initial states on both server and client.
+
+### Build output:
+PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> npm run build
+
+> careerhub-frontend@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.3s
+✓ Finished TypeScript in 7.8s    
+✓ Collecting page data using 15 workers in 2.7s    
+✓ Generating static pages using 15 workers (9/9) in 1861ms
+✓ Finalizing page optimization in 46ms    
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/applications
+├ ƒ /api/applications/stats
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/jobs
+├ ƒ /api/jobs/[id]
+├ ƒ /api/ping
+├ ƒ /dashboard/listings
+├ ƒ /jobs
+├ ƒ /jobs/[id]
+└ ƒ /login
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> 

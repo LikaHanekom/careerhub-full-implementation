@@ -133,7 +133,7 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
       availableImmediately: data.availableImmediately,
       noticePeriodWeeks: data.noticePeriodWeeks,
     };
-
+    console.log("Sending application payload:", JSON.stringify(applicationData, null, 2));
     await mutation.mutateAsync(applicationData);
   };
 
