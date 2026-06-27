@@ -3,24 +3,71 @@ import Link from "next/link";
 import { ApplicationForm } from "@/components/ApplicationForm";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { fetchJobById } from '@/lib/api';
-import { JobListing } from "@/types";
+import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
-async function getJob(id: string) {
-  return fetchJobById(id, { next: { tags: ['jobs'] } });
-}
 
 export default async function JobDetailPage({
-    params,
-    }: {
-    params: Promise<{ id: string }>;
-    }) {
-    const { id } = await params;
-    const job = await getJob(id);
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
 
-    if (!job) {
-        notFound();
+  // Fetch job and session in parallel
+  const [job, session] = await Promise.all([
+    fetchJobById(id, { next: { tags: ["jobs"] } }),
+    auth(),
+  ]);
+
+  if (!job) notFound();
+
+  const role = session?.user?.role;
+
+  // Determine what to render in the application section
+  const renderApplicationSection = () => {
+    if (!job.isActive) {
+      return (
+        <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            This position is no longer accepting applications.
+          </p>
+        </div>
+      );
     }
+
+    if (role === "employer") {
+      return (
+        <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Employers cannot apply for jobs.
+          </p>
+        </div>
+      );
+    }
+
+    if (!session) {
+      return (
+        <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            You must be signed in to apply.{" "}
+            <Link href="/login" className="font-medium underline hover:no-underline">
+              Sign in here.
+            </Link>
+          </p>
+        </div>
+      );
+    }
+
+    // role - "candidate"
+    return (
+      <ApplicationForm
+        jobId={job.id}
+        jobTitle={job.title}
+        applicantId={session.user.id}
+      />
+    );
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 dark:bg-gray-900">
@@ -42,27 +89,14 @@ export default async function JobDetailPage({
                 {job.company} • {job.location}
               </p>
             </div>
-            <JobStatusBadge 
-              employmentType={job.employmentType} 
-              isActive={job.isActive}             
+            <JobStatusBadge
+              employmentType={job.employmentType}
+              isActive={job.isActive}
             />
           </div>
         </div>
 
-        {/* Using isActive (boolean) instead of status (string) */}
-        {!job.isActive ? (
-          <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-              This position is no longer accepting applications.
-            </p>
-          </div>
-        ) : (
-          <ApplicationForm 
-            jobId={job.id} 
-            jobTitle={job.title} 
-            applicantId="a1111111-1111-1111-1111-111111111111" 
-          />
-        )}
+        {renderApplicationSection()}
       </div>
     </main>
   );

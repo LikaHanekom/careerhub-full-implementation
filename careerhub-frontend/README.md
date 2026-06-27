@@ -816,3 +816,73 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
+
+# Assignment 2.3
+
+## 1. Route Protection & Roles
+
+CareerHub utilizes middleware to enforce security at the edge, ensuring unauthenticated or unauthorized users are redirected before pages are rendered.
+
+| Route | Authorized Roles | Unauthorized Behavior | Handling Logic |
+| :--- | :--- | :--- | :--- |
+| `/jobs` | Public (All) | N/A | Middleware |
+| `/jobs/[id]` | Public (All) | N/A | Middleware |
+| `/dashboard` | Employer | Redirect to `/login` or `/jobs` | Middleware |
+| `/dashboard/listings`| Employer | Redirect to `/login` or `/jobs` | Middleware |
+| `/login` | Guest (Anonymous)| Redirect to `/dashboard` | Middleware |
+
+### Authorization Philosophy
+*   **Why Middleware?** It serves as the single source of truth for security. Handling protection here prevents "flashes" of restricted content and avoids unnecessary database/data fetching for unauthorized requests.
+*   **Authentication vs. Authorization:** Redirecting an unauthenticated user to `/login` is an **Authentication** enforcement (who are you?). Redirecting a candidate away from the `/dashboard` is an **Authorization** enforcement (what are you allowed to do?). Both are handled in middleware to ensure consistent, secure behavior across the entire routing tree.
+
+---
+
+## 2. Session Object Design
+
+### Data Strategy
+*   **Include:** `id`, `email`, `role`, and `name`. These are sufficient for UI personalization and RBAC (Role-Based Access Control) checks.
+*   **Exclude:** Sensitive credentials (passwords), PII (home addresses), or large objects to prevent session bloat.
+
+### The "Session Bloat" Risk
+Excessive data in the JWT/Session increases the payload size. Since the JWT is stored in a cookie, exceeding size limits (typically 4KB) will break the application. Additionally, excessive data increases CPU overhead during the decryption/validation process on every request.
+
+### The Three-Step Relay
+To expose the role in the UI, the data must flow through these hooks:
+1.  **`authorize`**: Authenticates credentials and returns the user object with the role.
+2.  **`jwt`**: Injects the `role` into the encrypted JWT token.
+3.  **`session`**: Reads the `role` from the JWT token and attaches it to the `session` object, making it available to `auth()`.
+
+*Note: Forgetting to map the role in the `session` callback will result in the role being available in the token but hidden from the React components.*
+
+---
+
+## 3. Job Filters: State Management
+
+| Filter | Tool | Justification |
+| :--- | :--- | :--- |
+| **Keyword Search** | `nuqs` | Synchronizes state with the URL for bookmarking and sharing. |
+| **Location** | `nuqs` | Consistent UX with search; allows deep-linking to specific regions. |
+| **Status Toggle** | `useState` | Localized UI preference; usually does not require shareable links. |
+
+### Why `nuqs`?
+`nuqs` enables **URL-as-state**. Unlike `useState`, which resets on page refresh, `nuqs` preserves the filter values in the query string. This allows users to share a filtered view of jobs (e.g., "Remote" + "React") with others, significantly improving the user experience.
+
+---
+
+## 4. Layout & Component Architecture
+
+### Server Components & `auth()`
+Calling `await auth()` in `layout.tsx` is highly performant. Next.js caches this request for the duration of the page render. It is the idiomatic way to handle identity-aware layouts without creating client-side waterfalls.
+
+### Handling Nested Client Components
+If a deeply nested Client Component requires the session:
+1.  **Prefer Prop Drilling:** Pass the necessary session data from the Server Component parent.
+2.  **Fallback:** Use `useSession()` from `next-auth/react` only if the component requires real-time reactivity to session changes (e.g., a "Logout" button that needs to update the UI immediately).
+
+### `auth()` vs. `useSession()`
+*   **`auth()`**: Use in **Server Components**. It is the standard for data fetching, server-side route protection, and SSR.
+*   **`useSession()`**: Use in **Client Components**. It provides a reactive hook for the browser environment, allowing components to respond to changes in the authentication state (e.g., sign-in/sign-out transitions) without a full page reload.
+
+# 3. Dashboard CloseJobButton 
+
+The CloseJobButton is rendered unconditionally on the dashboard. No role check is needed in the component or page because middleware guarantees that only authenticated employers ever reach /dashboard/*. Any unauthenticated user is redirected to /login and any candidate is redirected to /jobs before the page renders. Trusting middleware for this is correct because the redirect happens at the edge, before any page code executes — the component is simply never served to anyone who shouldn't see it.
