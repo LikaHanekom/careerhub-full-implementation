@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ApplicationForm } from "@/components/ApplicationForm";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { fetchJobById } from '@/lib/api';
-import { auth } from "@/auth";
+import { getServerSession } from "next-auth";
+import { authConfig } from "@/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,17 +15,15 @@ export default async function JobDetailPage({
 }) {
   const { id } = await params;
 
-  // Fetch job and session in parallel
   const [job, session] = await Promise.all([
     fetchJobById(id, { next: { tags: ["jobs"] } }),
-    auth(),
+    getServerSession(authConfig),
   ]);
 
   if (!job) notFound();
 
   const role = session?.user?.role;
 
-  // Determine what to render in the application section
   const renderApplicationSection = () => {
     if (!job.isActive) {
       return (
@@ -59,7 +58,7 @@ export default async function JobDetailPage({
       );
     }
 
-    // role - "candidate"
+    // Candidate — render the form
     return (
       <ApplicationForm
         jobId={job.id}

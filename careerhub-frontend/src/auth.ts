@@ -3,10 +3,10 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthOptions } from "next-auth";
 
 const users = [
-  { id: "1", username: "employer1", password: "password123", role: "employer", name: "Employer One" },
-  { id: "2", username: "employer2", password: "password123", role: "employer", name: "Employer Two" },
-  { id: "3", username: "alice",     password: "password123", role: "candidate", name: "Alice" },
-  { id: "4", username: "bob",       password: "password123", role: "candidate", name: "Bob" },
+  { id: "2d5d8e24-9b16-4d2a-89a1-fbf22d4f5c92", username: "employer1", password: "password123", role: "employer", name: "FinanceFlow" },
+  { id: "75ba7d3e-2b50-4841-860e-cbfb4e54e4df", username: "employer2", password: "password123", role: "employer", name: "TechCorp" },
+  { id: "a1111111-1111-1111-1111-111111111111", username: "alice", password: "password123", role: "candidate", name: "Applicant A" },
+  { id: "b2222222-2222-2222-2222-222222222222", username: "bob",   password: "password123", role: "candidate", name: "Applicant B" },
 ];
 
 export const authConfig: NextAuthOptions = {

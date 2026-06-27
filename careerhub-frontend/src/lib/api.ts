@@ -20,7 +20,8 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || errorData.title || `Request failed with status ${response.status}`);
+    console.error(`API ${response.status} on ${endpoint}:`, JSON.stringify(errorData, null, 2));
+    throw new Error(errorData.detail || errorData.title || errorData.message || `Request failed with status ${response.status}`);
   }
 
   return response.json();
