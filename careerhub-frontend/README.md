@@ -1012,3 +1012,57 @@ Route (app)
 ƒ  (Dynamic)  server-rendered on demand
 
 PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> 
+
+# Assignment 3.1
+## Question 1 — Draft Persistence Strategy
+Storage key structure: Use careerhub-application-${jobId}.
+Scoped to the job ID because each job is a separate application. If you used a single key like careerhub-application-draft, starting a second application would silently overwrite the first draft. With per-job keys, both drafts coexist independently.
+Two-device problem: localStorage is browser/device local. A draft saved on one device is invisible on another. You should note this limitation in the banner: drafts are saved locally and won't carry across devices.
+When to clear the draft — every trigger:
+
+Successful submit — the application was sent, the draft is no longer needed
+User clicks "Discard draft" and confirms — explicit user intent to delete
+That's it. Do not clear on Back, on navigation away, or on error
+
+Fields safe to store in localStorage:
+
+Full name, email, phone, cover letter, LinkedIn URL, "how did you hear" — all fine
+Nothing here is a password or payment detail, so all fields can be stored
+
+
+## Question 2 — Skeleton Loader Contract
+Matching dimensions in practice for a job card means:
+
+Same overall height (set a fixed min-height on the skeleton matching the real card)
+Same padding/margin
+Skeleton "lines" approximate real text line heights and widths
+Same border radius, same card shadow/border
+
+Filter returning 3 jobs but skeleton shows 6: The user sees 6 cards snap down to 3 — a jarring layout shift. The correct number is 6 as a fixed design choice (see Q4 in README). You can't know the result count before the fetch completes, so you pick a reasonable default that avoids showing too few (feels broken) or too many (feels deceptive).
+Paired component pattern: JobCardSkeleton is the skeleton twin of JobCard. They share the same outer dimensions and structure. If you change JobCard's height or padding, you must update JobCardSkeleton to match. If they drift apart, you get layout shift on swap — which is worse than a spinner because it moves content the user may already be reading.
+
+## Question 3 — AlertDialog vs Alternatives
+ActionComponentWhyClose a job listingAlertDialogDestructive, irreversible — needs friction. Modal blocks all interaction until resolved.Discard application draftAlertDialogAlso destructive and irreversible — same reasoning.
+The Server Action / portal problem: CloseJobButton uses a Server Action via useActionState. AlertDialogAction renders in a Radix portal — it lives outside the DOM tree of your form. This means type="submit" on a button inside AlertDialogContent does nothing, because there's no <form> ancestor for it to submit.
+Solution sketch: Keep the Server Action but manage dialog state with useState and call the action programmatically with useTransition:
+1. useState(false) controls dialog open/close
+2. User clicks "Close listing" → setOpen(true)
+3. AlertDialog renders with Cancel and Confirm
+4. Confirm button's onClick → startTransition(() => callServerAction())
+5. No type="submit" anywhere near the portal
+
+## Question 4 — Empty State Taxonomy
+Why they're different:
+
+No jobs in DB: The system has nothing to show anyone. The user can't do anything to fix this — no action button.
+Filters returned nothing: The user's own filters are hiding results that exist. The fix is in their hands — offer "Clear all filters."
+
+Showing the same empty state for both is confusing: in the filter case, the user might think the platform has no jobs and leave.
+Where the distinction happens — server-side:
+
+Making two checks after the fetch:
+
+Fetch with no filters — if zero results → state 1 (DB empty)
+Fetch with current filters — if zero results but state 1 didn't trigger → state 2 (filters too narrow)
+
+This is a server-side decision because it has direct DB access there, and it avoids sending unnecessary data to the client just to count it
