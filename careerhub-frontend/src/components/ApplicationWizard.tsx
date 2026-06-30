@@ -188,11 +188,13 @@ export function ApplicationWizard({
   // ── Navigation ──────────────────────────────────────────────────────────────
   const handleNext = async () => {
     // Gate: must be signed in as candidate to pass step 1
+    //to trigger test5 to not pass-comment out the line below
     if (step === 1 && !applicantId) return; // inline message handles this
 
     const fields = STEP_FIELDS[step];
     const valid = await trigger(fields);
     if (valid) setStep((s) => s + 1);
+    //setStep((s) => s + 1);
   };
 
   const handleBack = () => {
@@ -200,24 +202,28 @@ export function ApplicationWizard({
     setStep((s) => s - 1);
   };
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
+  // ── Submit 
     const onSubmit = async (data: WizardFormData) => {
     if (!applicantId) return;
-    await mutation.mutateAsync({
-        jobListingId: jobId,
-        applicantId,
-        fullName: data.fullName,
-        email: data.email,
-        phone: data.phone?.trim() || undefined,
-        coverLetter: data.coverLetter?.trim() || '',
-        linkedInUrl: data.linkedInUrl?.trim() || undefined,
-        yearsOfExperience: 0,
-        availableImmediately: true,
-        noticePeriodWeeks: 0,
-    });
+    try {
+      await mutation.mutateAsync({
+          jobListingId: jobId,
+          applicantId,
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone?.trim() || undefined,
+          coverLetter: data.coverLetter?.trim() || '',
+          linkedInUrl: data.linkedInUrl?.trim() || undefined,
+          yearsOfExperience: 0,
+          availableImmediately: true,
+          noticePeriodWeeks: 0,
+      });
+      } catch {
+        
+      }
     };
 
-  // ─── Employer guard ─────────────────────────────────────────────────────────
+  // ─── Employer guard 
   if (isEmployer) {
     return (
       <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -280,11 +286,10 @@ export function ApplicationWizard({
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
-        {/* ════════════════════════════════════════════
-            STEP 1 — Your Details
-        ════════════════════════════════════════════ */}
+        {/*STEP 1 — Your Details*/}
         {step === 1 && (
           <div className="space-y-4">
+             <h4 className="text-lg font-semibold">Your Details</h4>
             {/* Full Name */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium mb-1">
@@ -356,11 +361,10 @@ export function ApplicationWizard({
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            STEP 2 — Your Application
-        ════════════════════════════════════════════ */}
+        {/*STEP 2 — Your Application*/}
         {step === 2 && (
           <div className="space-y-4">
+            <h4 className="text-lg font-semibold">Your Application</h4>
             {/* Cover Letter */}
             <div>
               <label htmlFor="coverLetter" className="block text-sm font-medium mb-1">
@@ -426,11 +430,10 @@ export function ApplicationWizard({
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            STEP 3 — Review & Submit
-        ════════════════════════════════════════════ */}
+        {/*STEP 3 — Review & Submit */}
         {step === 3 && (
           <div className="space-y-4">
+            <h4 className="text-lg font-semibold">Review & Submit</h4>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Please review your application before submitting.
             </p>
@@ -538,7 +541,7 @@ export function ApplicationWizard({
   );
 }
 
-// ── Helper: review row ──────────────────────────────────────────────────────────
+// ── Helper: review row 
 function ReviewRow({
   label,
   value,
@@ -549,6 +552,7 @@ function ReviewRow({
   multiline?: boolean;
 }) {
   const display = value && value.trim() !== '' ? value : 'Not provided';
+  //const display = value; //test
   const isEmpty = display === 'Not provided';
 
   return (
