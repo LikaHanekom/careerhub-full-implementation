@@ -12,6 +12,17 @@ import { revalidateJobs } from '@/app/actions/revalidateJobs';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 // ─── Schema ────────────────────────────────────────────────────────────────────
 
 const wizardSchema = z
@@ -90,6 +101,7 @@ export function ApplicationWizard({
   const [step, setStep] = useState(1);
   const [hasDraft, setHasDraft] = useState(false);
   const router = useRouter();
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
 
   const storageKey = `careerhub-application-${jobId}`;
 
@@ -158,19 +170,20 @@ export function ApplicationWizard({
   });
 
   // ── Discard draft ───────────────────────────────────────────────────────────
-  const discardDraft = () => {
+    const discardDraft = () => {
     localStorage.removeItem(storageKey);
     reset({
-      fullName: '',
-      email: '',
-      phone: '',
-      coverLetter: '',
-      linkedInUrl: '',
-      howDidYouHear: '',
+        fullName: '',
+        email: '',
+        phone: '',
+        coverLetter: '',
+        linkedInUrl: '',
+        howDidYouHear: '',
     });
     setHasDraft(false);
     setStep(1);
-  };
+    setDiscardDialogOpen(false);
+    };
 
   // ── Navigation ──────────────────────────────────────────────────────────────
   const handleNext = async () => {
@@ -455,14 +468,29 @@ export function ApplicationWizard({
         <div className="mt-6 flex items-center justify-between gap-3">
           {/* Discard draft — only when draft exists */}
           {hasDraft && step === 1 && (
-            <button
-              type="button"
-              onClick={discardDraft}
-              className="text-sm text-red-500 hover:text-red-700 underline"
-            >
-              Discard draft
-            </button>
-          )}
+            <AlertDialog open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
+                <button
+                type="button"
+                onClick={() => setDiscardDialogOpen(true)}
+                className="text-sm text-red-500 hover:text-red-700 underline"
+                >
+                Discard draft
+                </button>
+
+                <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Discard your draft?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                    Your saved application progress will be permanently deleted. This cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Keep draft</AlertDialogCancel>
+                    <AlertDialogAction onClick={discardDraft}>Discard draft</AlertDialogAction>
+                </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            )}
 
           <div className="flex gap-3 ml-auto">
             {step > 1 && (
