@@ -163,3 +163,8 @@ export async function getJobs(filters?: JobFilters): Promise<JobListing[]> {
 
   return results;
 }
+
+export async function getJobsTotalCount(): Promise<number> {
+  const allJobs = await fetchJobs({ next: { tags: ["jobs"] } });
+  return allJobs.length;
+}
