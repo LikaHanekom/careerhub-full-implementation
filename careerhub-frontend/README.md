@@ -1139,3 +1139,57 @@ If totalCount === 0, the database itself has no jobs at all — independent of a
 If totalCount > 0 but the filtered jobs array is empty, the user's filters are responsible for the empty result. This renders "No jobs match your search," along with a summary of the active filters and a "Clear all filters" link.
 
 This has to happen server-side because the client only ever receives the already-filtered list of jobs from the page's render — it has no independent way to know whether zero results means "the database is empty" or "the filters were too narrow" without a second data point from the server. A client-side count check would either require an extra round-trip fetch (worse for performance and adds complexity) or duplicate logic that the server already has cheap, cache-tagged access to.
+
+# Assignment 3.2
+## Question 1 — What is worth testing?
+Category A — High-value behaviours to test
+
+Step validation blocks advancement (the trigger() call in handleNext). A regression here means a candidate could advance to step 2 with an invalid email or missing name, and that bad data would reach your backend. High value because it directly protects data integrity at the boundary where user input enters the system.
+The auth gate on step 1 (!applicantId disabling Next). A regression here means an unauthenticated user could submit an application with no applicantId, which would either crash the mutation or silently corrupt backend data. High value because it's a security/correctness boundary, not just a UX nicety.
+Back button preserves field values. A regression here (e.g. accidentally calling reset() instead of just setStep) would silently destroy a candidate's typed work — exactly the kind of bug that's invisible until a real user loses their cover letter mid-application.
+Review step renders "Not provided" for empty optional fields, rather than blank or undefined. A regression here means the review screen lies to the candidate about what they're about to submit.
+Draft restore on mount populates the form and shows the banner. A regression here breaks the entire reason the feature exists — silent data loss on refresh.
+Successful submit clears the draft and resets to step 1. A regression here means a candidate who submits, then later returns to the same job, sees a "draft restored" banner full of stale data from an application they already sent.
+
+Each of these is high-value because it's a behaviour a real candidate would notice breaking, with a concrete bad outcome (lost data, bad submission, confusing UI) — not just a difference in rendered markup.
+Category B — Things NOT worth testing
+
+Exact Tailwind class names (e.g. asserting className contains bg-blue-600). Testing this gains nothing — it doesn't verify the button is usable, visible, or functions correctly, and it actively costs you: every time you redesign the button's color or spacing, the test breaks for a reason that has nothing to do with behavior, training you to ignore test failures.
+The exact number of <div> elements rendered, or DOM structure/nesting depth. This couples the test to implementation details that could change for purely cosmetic refactors (e.g. wrapping a section in an extra div for spacing). You'd gain nothing about correctness and lose the ability to refactor markup freely without breaking unrelated tests.
+
+Category C — Draft persistence: real vs mocked localStorage
+I'd use the real jsdom localStorage implementation, not vi.spyOn.
+A vi.spyOn(Storage.prototype, "setItem") mock only verifies that your code called setItem with certain arguments — it tells you the component attempted to write, but says nothing about whether a value written that way could actually be read back correctly later (e.g. JSON serialization bugs, key collisions, type mismatches on parse). Real jsdom localStorage is a working in-memory implementation of the actual Storage API, so a test using it verifies the full round trip: write on mount, persist across a simulated reload, and successfully restore via JSON.parse into the form. That's a much stronger guarantee of actual behavior, and it's what Stretch Goal A explicitly asks for too — so it's worth setting up properly now.
+
+## Question 2 — Mocking the session
+Approach 1 — vi.mock("next-auth/react", ...): Replaces the entire useSession hook with a fake function that returns whatever you tell it to ({ data: session, status: ... }). This mocks everything about authentication — there's no real SessionProvider, no real context, no real network call. It leaves nothing real; the component just receives a hardcoded session value directly from the mocked hook.
+Approach 2 — wrap in a real SessionProvider with initialSession: This uses the actual NextAuth client-side provider and context machinery, just seeded with fake data instead of a real fetched session. It leaves the context plumbing real — useSession() genuinely reads from React context the way it would in production — while only the session data itself is fake.
+Which I'd use for Part 3 auth-gate tests: Approach 1 (vi.mock). It's simpler, faster, and sufficient — the auth-gate tests care only about what ApplicationWizard does with a given session value (null vs an authenticated candidate vs an employer), not whether NextAuth's context propagation itself works correctly, which is NextAuth's own responsibility to test, not ours.
+
+## Question 3- MSW Scope
+
+| Request Method | URL Pattern | Happy-path response |
+| :--- | :--- | :--- |
+| **POST** | `${API}/api/v1/applications/apply` | 201 with a mock `ApplicationResponse` (id, jobId, email, submittedAt) |
+| **N/A** | Revalidate jobs (Server Action) | Not an HTTP request — `revalidateJobs()` is a Next.js Server Action calling `revalidateTag` internally |
+
+That is the only real client-initiated HTTP request `ApplicationWizard` makes — it does not fetch the job on mount (the job is passed in as props from the server-rendered parent page), and it has no other queries. Your wizard is comparatively lean here compared to the demo's `BookingWizard`.
+
+### What MSW cannot help test
+The `revalidateJobs()` call and the subsequent `router.refresh()` cannot be intercepted by MSW. These are not standard HTTP requests:
+*   `revalidateJobs` is a **Next.js Server Action** that runs server-side and calls `revalidateTag`.
+*   `router.refresh()` triggers Next.js's internal RSC (React Server Component) re-fetch mechanism.
+
+In a Vitest + jsdom environment, these should be mocked directly (e.g., `vi.mock` the Server Action module, or allow it to run if it is harmless in a test context). This is a real example of where the demo pattern needs adapting: your wizard's post-submit side effects span both an HTTP boundary (MSW-testable) and a Next.js server-action boundary (not MSW-testable, requires specific mocking).
+
+---
+
+# Question 4 — Test naming as specification
+
+| # | Original | Type | Rewrite / Reasoning |
+| :--- | :--- | :--- | :--- |
+| **a** | "ApplicationWizard currentStep state equals 'schedule' after clicking Next with valid step 1 data" | Implementation | **Rewrite:** "shows the Schedule step heading after clicking Next with valid step 1 data" (Describes what the user sees) |
+| **b** | "shows Schedule heading when step 1 is complete" | Behaviour | No rewrite needed. |
+| **c** | "calls localStorage.setItem with the correct key on step change" | Implementation | **Rewrite:** "the draft persists across a simulated reload after changing steps" (Asserts the outcome, not the implementation) |
+| **d** | "draft is available when the user returns to the form mid-application" | Behaviour | No rewrite needed. |
+| **e** | "ApplicationWizard renders 3 div elements with role='status'" | Implementation | **Rewrite:** "shows a progress indicator with three steps" (Asserts visible labels/numbers rather than DOM element counts) |
