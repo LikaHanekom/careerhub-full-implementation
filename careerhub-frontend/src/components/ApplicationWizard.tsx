@@ -202,24 +202,28 @@ export function ApplicationWizard({
     setStep((s) => s - 1);
   };
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
+  // ── Submit 
     const onSubmit = async (data: WizardFormData) => {
     if (!applicantId) return;
-    await mutation.mutateAsync({
-        jobListingId: jobId,
-        applicantId,
-        fullName: data.fullName,
-        email: data.email,
-        phone: data.phone?.trim() || undefined,
-        coverLetter: data.coverLetter?.trim() || '',
-        linkedInUrl: data.linkedInUrl?.trim() || undefined,
-        yearsOfExperience: 0,
-        availableImmediately: true,
-        noticePeriodWeeks: 0,
-    });
+    try {
+      await mutation.mutateAsync({
+          jobListingId: jobId,
+          applicantId,
+          fullName: data.fullName,
+          email: data.email,
+          phone: data.phone?.trim() || undefined,
+          coverLetter: data.coverLetter?.trim() || '',
+          linkedInUrl: data.linkedInUrl?.trim() || undefined,
+          yearsOfExperience: 0,
+          availableImmediately: true,
+          noticePeriodWeeks: 0,
+      });
+      } catch {
+        
+      }
     };
 
-  // ─── Employer guard ─────────────────────────────────────────────────────────
+  // ─── Employer guard 
   if (isEmployer) {
     return (
       <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -282,9 +286,7 @@ export function ApplicationWizard({
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
-        {/* ════════════════════════════════════════════
-            STEP 1 — Your Details
-        ════════════════════════════════════════════ */}
+        {/*STEP 1 — Your Details*/}
         {step === 1 && (
           <div className="space-y-4">
              <h4 className="text-lg font-semibold">Your Details</h4>
@@ -359,9 +361,7 @@ export function ApplicationWizard({
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            STEP 2 — Your Application
-        ════════════════════════════════════════════ */}
+        {/*STEP 2 — Your Application*/}
         {step === 2 && (
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Your Application</h4>
@@ -430,9 +430,7 @@ export function ApplicationWizard({
           </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            STEP 3 — Review & Submit
-        ════════════════════════════════════════════ */}
+        {/*STEP 3 — Review & Submit */}
         {step === 3 && (
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Review & Submit</h4>
@@ -543,7 +541,7 @@ export function ApplicationWizard({
   );
 }
 
-// ── Helper: review row ──────────────────────────────────────────────────────────
+// ── Helper: review row 
 function ReviewRow({
   label,
   value,

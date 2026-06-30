@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
-import { vi, beforeEach } from "vitest";
+import { vi, beforeAll, afterEach, afterAll } from "vitest";
+import { server } from "./msw/server";
 
-//global mock applied to every test file
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -15,6 +15,14 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-beforeEach(() => {
+vi.mock("next/cache", () => ({
+  revalidateTag: vi.fn(),
+  revalidatePath: vi.fn(),
+}));
+
+beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+afterEach(() => {
+  server.resetHandlers();
   localStorage.clear();
 });
+afterAll(() => server.close());

@@ -1,8 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders, employerSession } from "./utils";
 import { ApplicationWizard } from "@/components/ApplicationWizard";
+import { http, HttpResponse } from "msw";
+import { server } from "./msw/server";
+
+
+vi.mock("@/app/actions/revalidateJobs", () => ({
+    revalidateJobs: vi.fn(),
+}));
+
 
 function renderWizard(props: Partial<React.ComponentProps<typeof ApplicationWizard>> = {}) {
   return renderWithProviders(
@@ -17,6 +25,8 @@ function renderWizard(props: Partial<React.ComponentProps<typeof ApplicationWiza
 }
 
 describe("ApplicationWizard", () => {
+    
+
   // Test 1: Renders Step 1 heading on mount
   it("renders the step 1 heading on mount", () => {
     renderWizard();
@@ -118,4 +128,77 @@ describe("ApplicationWizard", () => {
     expect(screen.getByText("jane@example.com")).toBeInTheDocument();
     expect(screen.getAllByText("Not provided").length).toBeGreaterThan(0);
   });
+
+  async function fillAllSteps(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(screen.getByLabelText(/full name/i), "Jane Doe");
+    await user.type(screen.getByLabelText(/email address/i), "jane@example.com");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+
+    await screen.findByRole("heading", { name: "Your Application" });
+    await user.selectOptions(screen.getByLabelText(/how did you hear/i), "linkedin");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+
+    await screen.findByRole("heading", { name: "Review & Submit" });
+    }
+
+    describe("ApplicationWizard submission", () => {
+    // Test 8: Happy-path form resets after successfull submission
+    it("resets the form after successful submission", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+
+    await fillAllSteps(user);
+    await user.click(screen.getByRole("button", { name: /submit application/i }));
+
+    // Wait for the post-submit reset to complete — this single findByRole
+    // both waits for the async mutation/reset AND proves we're back on step 1
+    expect(
+        await screen.findByRole("heading", { name: "Your Details" }, { timeout: 3000 })
+    ).toBeInTheDocument();
+
+    expect(screen.getByLabelText(/full name/i)).toHaveValue("");
+    });
+
+    // Test 9: Error path - form retains values when the API returns an error
+    it("retains values when the API returns an error", async () => {
+        server.use(
+        http.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/applications/apply`, () => {
+            return new HttpResponse(null, { status: 500 });
+        })
+        );
+
+        const user = userEvent.setup();
+        renderWizard();
+
+        await fillAllSteps(user);
+        await user.click(screen.getByRole("button", { name: /submit application/i }));
+
+        await screen.findByRole("button", { name: /submit application/i }, { timeout: 3000 });
+
+        expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+    });
+    });
+    it("DEBUG: trace fillAllSteps", async () => {
+  const user = userEvent.setup();
+  renderWizard();
+
+  await user.type(screen.getByLabelText(/full name/i), "Jane Doe");
+  await user.type(screen.getByLabelText(/email address/i), "jane@example.com");
+  await user.click(screen.getByRole("button", { name: /next/i }));
+
+  await screen.findByRole("heading", { name: "Your Application" });
+  console.log("✅ reached step 2");
+
+  await user.selectOptions(screen.getByLabelText(/how did you hear/i), "linkedin");
+  console.log("✅ selected how did you hear");
+
+  await user.click(screen.getByRole("button", { name: /next/i }));
+  console.log("✅ clicked next on step 2");
+
+  await screen.findByRole("heading", { name: "Review & Submit" }, { timeout: 3000 });
+  console.log("✅ reached step 3");
+
+  screen.debug(screen.getByRole("button", { name: /submit/i }));
+});
+
 });
