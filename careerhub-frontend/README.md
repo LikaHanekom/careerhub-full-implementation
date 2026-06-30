@@ -1066,3 +1066,8 @@ Fetch with no filters — if zero results → state 1 (DB empty)
 Fetch with current filters — if zero results but state 1 didn't trigger → state 2 (filters too narrow)
 
 This is a server-side decision because it has direct DB access there, and it avoids sending unnecessary data to the client just to count it
+
+Step 3 — Approach decision
+Chosen approach: Keep the Server Action, manage dialog open state with useState, call the action via useTransition.
+Why: your closeJobListing action is already wired with useActionState and revalidateTag, which gives you the loading/error/success state machine for free. Rewriting it as a client-side useMutation would duplicate that logic for no benefit. Instead, we wrap the existing formAction call in a startTransition, triggered manually from the AlertDialogAction's onClick instead of relying on type="submit".
+Why type="submit" does nothing here: AlertDialogAction (and all Radix AlertDialog content) renders into a portal attached near document.body, outside the React tree of your <form>. A type="submit" button only submits the nearest ancestor <form> in the DOM — and there isn't one, since the portal content is rendered elsewhere in the DOM tree entirely. So we must call formAction programmatically instead of relying on native form submission.
