@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ApplicationForm } from "@/components/ApplicationForm";
+import { ApplicationWizard } from "@/components/ApplicationWizard";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { fetchJobById } from '@/lib/api';
 import { getServerSession } from "next-auth";
@@ -25,48 +25,25 @@ export default async function JobDetailPage({
   const role = session?.user?.role;
 
   const renderApplicationSection = () => {
-    if (!job.isActive) {
-      return (
-        <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-            This position is no longer accepting applications.
-          </p>
-        </div>
-      );
-    }
-
-    if (role === "employer") {
-      return (
-        <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Employers cannot apply for jobs.
-          </p>
-        </div>
-      );
-    }
-
-    if (!session) {
-      return (
-        <div className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            You must be signed in to apply.{" "}
-            <Link href="/login" className="font-medium underline hover:no-underline">
-              Sign in here.
-            </Link>
-          </p>
-        </div>
-      );
-    }
-
-    // Candidate — render the form
+  if (!job.isActive) {
     return (
-      <ApplicationForm
-        jobId={job.id}
-        jobTitle={job.title}
-        applicantId={session.user.id}
-      />
+      <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+          This position is no longer accepting applications.
+        </p>
+      </div>
     );
-  };
+  }
+  return (
+    <ApplicationWizard
+      jobId={job.id}
+      jobTitle={job.title}
+      applicantId={session?.user?.id ?? null}
+      isEmployer={role === 'employer'}
+    />
+  );
+};
+
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 dark:bg-gray-900">
