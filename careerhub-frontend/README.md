@@ -1,3 +1,4 @@
+[![Frontend Tests](https://github.com/LikaHanekom/careerhub-full-implementation/actions/workflows/test.yml/badge.svg)](https://github.com/LikaHanekom/careerhub-full-implementation/actions/workflows/test.yml)
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -1193,3 +1194,20 @@ In a Vitest + jsdom environment, these should be mocked directly (e.g., `vi.mock
 | **c** | "calls localStorage.setItem with the correct key on step change" | Implementation | **Rewrite:** "the draft persists across a simulated reload after changing steps" (Asserts the outcome, not the implementation) |
 | **d** | "draft is available when the user returns to the form mid-application" | Behaviour | No rewrite needed. |
 | **e** | "ApplicationWizard renders 3 div elements with role='status'" | Implementation | **Rewrite:** "shows a progress indicator with three steps" (Asserts visible labels/numbers rather than DOM element counts) |
+
+
+#Post Code README updates: Assignment 3.2:
+1. What makes a test high-value for this codebase
+I prioritized behaviours where a silent regression costs a candidate real work or lets bad data through: step validation blocking invalid advancement, the auth gate preventing unauthenticated submission, Back preserving typed values, and "Not provided" rendering for empty optional fields on review. Each maps to a concrete failure a user would actually hit.
+I did not test the exact Tailwind classes on the progress indicator (e.g. bg-blue-600 vs bg-gray-200) or the precise div nesting of the step container. These would break on a purely cosmetic refactor, training the team to ignore failing tests, while proving nothing about correctness.
+
+2. Session mocking approach
+I used vi.mock("next-auth/react", ...) per the assignment's setup, but ApplicationWizard doesn't actually call useSession() — auth state is resolved server-side in the parent page and passed down as applicantId/isEmployer props. So the auth-gate tests (5 and 6) set state directly through those props rather than exercising the session mock. The mock stays in place to match the required scaffolding and would matter for any component that does call useSession() directly. It verifies that a component reading the hook gets the session value I specify — not that NextAuth's real session-fetching or cookie handling works, which isn't this suite's job.
+
+3. The localStorage question
+I used the real jsdom localStorage implementation, clearing it in beforeEach/afterEach. A vi.spyOn mock would only confirm setItem was called with certain args — not that the value could actually be read back and parsed into the form. Real localStorage verifies the full write → reload → restore cycle, which is the actual feature being tested.
+This proves the round trip works within one test run and that key scoping (careerhub-application-${jobId}) behaves correctly. It can't prove real browser quirks — storage quotas, private browsing, or persistence across an actual reload — since jsdom's localStorage only lives in memory for the test.
+
+4. One test that surprised you
+Test 8 kept failing with the wizard apparently stuck on step 1, and I assumed fillAllSteps was broken. An isolated debug version of the same logic passed fine, which ruled that out.
+The real issue: after a successful submit, the wizard resets to step 1 — so the "Submit Application" button (step 3 only) correctly disappears. My test was waiting for that button to reappear as a "submission settled" signal, but it was never coming back by design. The fix was waiting for the step 1 heading instead, which both confirms the async reset completed and directly checks the real outcome. The failure wasn't a bug — it was my test describing the wrong experience.
