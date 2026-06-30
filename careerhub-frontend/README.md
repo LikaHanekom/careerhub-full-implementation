@@ -1012,3 +1012,130 @@ Route (app)
 ƒ  (Dynamic)  server-rendered on demand
 
 PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> 
+
+# Assignment 3.1
+## Question 1 — Draft Persistence Strategy
+Storage key structure: Use careerhub-application-${jobId}.
+Scoped to the job ID because each job is a separate application. If you used a single key like careerhub-application-draft, starting a second application would silently overwrite the first draft. With per-job keys, both drafts coexist independently.
+Two-device problem: localStorage is browser/device local. A draft saved on one device is invisible on another. You should note this limitation in the banner: drafts are saved locally and won't carry across devices.
+When to clear the draft — every trigger:
+
+Successful submit — the application was sent, the draft is no longer needed
+User clicks "Discard draft" and confirms — explicit user intent to delete
+That's it. Do not clear on Back, on navigation away, or on error
+
+Fields safe to store in localStorage:
+
+Full name, email, phone, cover letter, LinkedIn URL, "how did you hear" — all fine
+Nothing here is a password or payment detail, so all fields can be stored
+
+
+## Question 2 — Skeleton Loader Contract
+Matching dimensions in practice for a job card means:
+
+Same overall height (set a fixed min-height on the skeleton matching the real card)
+Same padding/margin
+Skeleton "lines" approximate real text line heights and widths
+Same border radius, same card shadow/border
+
+Filter returning 3 jobs but skeleton shows 6: The user sees 6 cards snap down to 3 — a jarring layout shift. The correct number is 6 as a fixed design choice (see Q4 in README). You can't know the result count before the fetch completes, so you pick a reasonable default that avoids showing too few (feels broken) or too many (feels deceptive).
+Paired component pattern: JobCardSkeleton is the skeleton twin of JobCard. They share the same outer dimensions and structure. If you change JobCard's height or padding, you must update JobCardSkeleton to match. If they drift apart, you get layout shift on swap — which is worse than a spinner because it moves content the user may already be reading.
+
+## Question 3 — AlertDialog vs Alternatives
+ActionComponentWhyClose a job listingAlertDialogDestructive, irreversible — needs friction. Modal blocks all interaction until resolved.Discard application draftAlertDialogAlso destructive and irreversible — same reasoning.
+The Server Action / portal problem: CloseJobButton uses a Server Action via useActionState. AlertDialogAction renders in a Radix portal — it lives outside the DOM tree of your form. This means type="submit" on a button inside AlertDialogContent does nothing, because there's no <form> ancestor for it to submit.
+Solution sketch: Keep the Server Action but manage dialog state with useState and call the action programmatically with useTransition:
+1. useState(false) controls dialog open/close
+2. User clicks "Close listing" → setOpen(true)
+3. AlertDialog renders with Cancel and Confirm
+4. Confirm button's onClick → startTransition(() => callServerAction())
+5. No type="submit" anywhere near the portal
+
+## Question 4 — Empty State Taxonomy
+Why they're different:
+
+No jobs in DB: The system has nothing to show anyone. The user can't do anything to fix this — no action button.
+Filters returned nothing: The user's own filters are hiding results that exist. The fix is in their hands — offer "Clear all filters."
+
+Showing the same empty state for both is confusing: in the filter case, the user might think the platform has no jobs and leave.
+Where the distinction happens — server-side:
+
+Making two checks after the fetch:
+
+Fetch with no filters — if zero results → state 1 (DB empty)
+Fetch with current filters — if zero results but state 1 didn't trigger → state 2 (filters too narrow)
+
+This is a server-side decision because it has direct DB access there, and it avoids sending unnecessary data to the client just to count it
+
+Step 3 — Approach decision
+Chosen approach: Keep the Server Action, manage dialog open state with useState, call the action via useTransition.
+Why: your closeJobListing action is already wired with useActionState and revalidateTag, which gives you the loading/error/success state machine for free. Rewriting it as a client-side useMutation would duplicate that logic for no benefit. Instead, we wrap the existing formAction call in a startTransition, triggered manually from the AlertDialogAction's onClick instead of relying on type="submit".
+Why type="submit" does nothing here: AlertDialogAction (and all Radix AlertDialog content) renders into a portal attached near document.body, outside the React tree of your <form>. A type="submit" button only submits the nearest ancestor <form> in the DOM — and there isn't one, since the portal content is rendered elsewhere in the DOM tree entirely. So we must call formAction programmatically instead of relying on native form submission.
+
+Step 5: empty state taxonomy
+The distinction is made server-side, in page.tsx, by running two queries: an unfiltered count (getJobsTotalCount) and the filtered result (getJobs). If the unfiltered count is zero, nothing exists in the database at all — independent of filters. If the unfiltered count is nonzero but the filtered result is empty, the user's filters are responsible. This must happen server-side because the client only ever receives the already-filtered list; it has no way to distinguish "nothing exists" from "nothing matched" without a second piece of information from the server.
+
+# After Coding updates:
+## Gate:
+PS C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend> npm run build
+
+> careerhub-frontend@0.1.0 build
+> next build
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * C:\Users\alika\OneDrive\Documents\Alika IT\Bitcube\Career-Hub\careerhub-frontend\package-lock.json
+
+✓ Generating static pages using 15 workers (9/9) in 1841ms
+✓ Finalizing page optimization in 46ms    
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/applications
+├ ƒ /api/applications/stats
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/jobs
+├ ƒ /api/jobs/[id]
+├ ƒ /api/ping
+├ ƒ /dashboard/listings
+├ ƒ /jobs
+├ ƒ /jobs/[id]
+└ ƒ /login
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+## Draft storage key decision
+The storage key is scoped per job: careerhub-application-${jobId}. This means each job a candidate applies to gets its own independent slot in localStorage.
+If a single shared key like careerhub-application-draft were used instead, a candidate applying to two different jobs in the same browser would have the second draft silently overwrite the first the moment they started typing. There would be no warning — the candidate would simply lose their first application's progress without realizing it, and likely only discover this when they returned to finish it and found the wrong job's data (or no data at all) waiting for them.
+Scoping by job ID solves this directly: opening /jobs/123 and /jobs/456 in two tabs, or visiting one after the other, each maintains its own draft under its own key. Neither write touches the other.
+This also surfaces a related edge case worth addressing: what happens if a job's requirements change while a draft is saved (e.g. the employer edits the listing, or it closes entirely)? Since the draft only stores form field values — not a snapshot of the job posting — a restored draft will always reflect the current job listing the candidate sees on page load, not a stale version. If the job has since closed, the wizard's existing !job.isActive check at the page level takes over and shows the "no longer accepting applications" message instead of the wizard, so a stale draft is never submitted against a closed listing. The draft itself remains in localStorage in that case (not auto-cleared), since the candidate may want to copy that text into a different application later — only an explicit submit or "Discard draft" click clears it.
+
+## Solving AlertDialog with a Server Action
+For Part 4a I kept the existing Server Action (closeJobListing) and useActionState, rather than rewriting it as a client-side useMutation. Dialog visibility is managed with a useState boolean (open), and the actual confirm action is triggered manually from AlertDialogAction's onClick handler, wrapped in useTransition.
+The problem: AlertDialogContent (and everything inside it, including AlertDialogAction) is rendered by Radix into a portal attached near document.body — outside the React tree of the surrounding <form>. A button with type="submit" only submits the nearest ancestor <form> in the DOM, and because the portal places the button's actual DOM node elsewhere in the document, there is no enclosing form for it to submit to. Clicking it does nothing, even though visually it appears to be inside the form.
+Why my solution works: instead of relying on native form submission, AlertDialogAction's onClick manually constructs a FormData object containing the jobId, then calls the Server Action's bound formAction function directly inside startTransition. This sidesteps the portal/form mismatch entirely — formAction doesn't need to be triggered via a real <form> submit event, since useActionState exposes it as a plain callable function. useTransition gives the same pending-state UX a real form submission would (the button can show "Closing…" and disable itself), without needing a literal form element to wrap the dialog content.
+I chose this over the client-mutation approach because the Server Action already had error handling, response shaping, and revalidateTag wired up correctly from Assignment 2.3 — reimplementing that as a useMutation would have duplicated logic for no functional benefit.
+
+## The Back button and validation
+The Back button intentionally does not re-validate the step the user is leaving. It simply moves step back by one, with no trigger() call.
+The reasoning: validation should only ever block forward progress, not backward navigation. A user moving backward is, by definition, not trying to submit anything yet — they're reviewing or correcting something. If Back triggered validation on the step being left, a user who clicked Back from step 2 to fix a typo in their full name (step 1) could find themselves unable to leave step 2 at all, because they hadn't yet filled in the optional cover letter or LinkedIn URL on step 2. The very act of trying to go fix an earlier mistake would be blocked by incomplete data on the step they're trying to leave — which is backwards. The user should always be free to move back and look at, or revise, any earlier step regardless of what state the current step is in.
+
+## Skeleton count justification
+Six skeleton cards were chosen because, in the page's grid-cols-1 md:grid-cols-2 lg:grid-cols-3 layout, six fills exactly two full rows on desktop without scrolling — enough to suggest a reasonably populated page without committing to a specific number of real results.
+Showing too few (e.g. 2–3 cards) sends the signal that there's barely any content on the page before the data has even loaded, which can make the page feel sparse or broken even if the real result count turns out to be large. Showing too many (e.g. 12+) creates the opposite problem: it implies a large result set is coming, and if the actual filtered results are much smaller, the swap from skeleton to real content causes a jarring collapse in apparent content volume — closer to a bait-and-switch than a loading state. Six is a middle ground that reads as "a normal page of jobs is loading" without over- or under-promising.
+
+## Empty state taxonomy
+/jobs can be empty for two distinct reasons, and the distinction is made server-side, inside app/jobs/page.tsx.
+The page runs two queries in parallel: getJobs(filters), which returns the filtered result set, and getJobsTotalCount(), which returns the count of all jobs in the database with no filters applied. Comparing the two determines which empty state applies:
+
+If totalCount === 0, the database itself has no jobs at all — independent of any filters the user has applied. This renders "No jobs are currently listed," with no action button, since there's nothing the user can do to fix an empty database.
+If totalCount > 0 but the filtered jobs array is empty, the user's filters are responsible for the empty result. This renders "No jobs match your search," along with a summary of the active filters and a "Clear all filters" link.
+
+This has to happen server-side because the client only ever receives the already-filtered list of jobs from the page's render — it has no independent way to know whether zero results means "the database is empty" or "the filters were too narrow" without a second data point from the server. A client-side count check would either require an extra round-trip fetch (worse for performance and adds complexity) or duplicate logic that the server already has cheap, cache-tagged access to.

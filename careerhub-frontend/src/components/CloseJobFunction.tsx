@@ -1,47 +1,77 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { closeJobListing } from "@/app/actions/closeJob";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface CloseJobButtonProps {
   jobId: string;
-  isActive: boolean; // matches JobListing.isActive, not a status string
+  isActive: boolean;
 }
 
-export default function CloseJobButton({
-  jobId,
-  isActive,
-}: CloseJobButtonProps) {
-  const [state, formAction, isPending] = useActionState(closeJobListing, null);
+export default function CloseJobButton({ jobId, isActive }: CloseJobButtonProps) {
+  const [state, formAction] = useActionState(closeJobListing, null);
+  const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  // Already closed — render nothing in the Action column
+  useEffect(() => {
+    if (!state) return;
+
+    if (state.status === "success") {
+      toast.success(`Listing closed: ${state.jobTitle}`);
+      setOpen(false);
+    } else if (state.status === "error") {
+      toast.error(state.message ?? "Failed to close listing. Please try again.");
+      setOpen(false);
+    }
+  }, [state]);
+
   if (!isActive) return null;
 
-  // Success — swap button for confirmation
-  if (state?.status === "success") {
-    return (
-      <span className="text-green-600 text-sm font-medium">
-        ✓ Closed: {state.jobTitle}
-      </span>
-    );
-  }
+  const handleConfirm = () => {
+    const formData = new FormData();
+    formData.set("jobId", jobId);
+
+    startTransition(() => {
+      formAction(formData);
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-1">
-      <form action={formAction}>
-        <input type="hidden" name="jobId" value={jobId} />
-        <button
-          type="submit"
-          disabled={isPending}
-          className="text-sm px-3 py-1 rounded-md border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {isPending ? "Closing…" : "Close listing"}
-        </button>
-      </form>
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-sm px-3 py-1 rounded-md border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        Close listing
+      </button>
 
-      {state?.status === "error" && (
-        <p className="text-red-500 text-xs">{state.message}</p>
-      )}
-    </div>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Close this listing?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This listing will be marked as closed and removed from the public jobs board. This
+            cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep listing</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm} disabled={isPending}>
+            {isPending ? "Closing…" : "Close listing"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

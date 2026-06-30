@@ -9,6 +9,7 @@ import { ApplicationRequest } from '@/types';
 import { cn } from '@/lib/utils'; 
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { toast } from "sonner";
 
 const phoneRegex = /^\+?[\d\s\-()]{8,15}$/;
 
@@ -111,13 +112,14 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
       reset();
       await revalidateJobs();
       router.refresh();
+      toast.success("Application submitted! We'll be in touch soon."); // 👈 add
     },
 
     onError: (error) => {
       console.error("Application submission failed:", error);
+      toast.error(error?.message ?? "Failed to submit application. Please try again."); // 👈 add
     },
   });
-
   const isBusy = isSubmitting || mutation.isPending;
 
   const onSubmit = async (data: ApplicationFormData) => {
@@ -153,17 +155,10 @@ export function ApplicationForm({ jobId, jobTitle, applicantId }: ApplicationFor
     );
   }
 
-  const formError = mutation.isError ? mutation.error?.message : null;
 
   return (
     <div className="mt-4 border dark:border-gray-700 rounded-lg p-6">
       <h3 className="text-xl font-semibold mb-4">Apply for {jobTitle}</h3>
-
-      {formError && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-          <p className="text-red-600 dark:text-red-400">{formError}</p>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <div className="space-y-4">

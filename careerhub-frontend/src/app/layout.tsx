@@ -8,6 +8,7 @@ import Providers from "./providers";
 import Link from "next/link";
 import NavBar from "../components/NavBar"; 
 import { auth } from "@/auth";
+import { Toaster } from "sonner"; 
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         suppressHydrationWarning={true}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Toaster position="top-right" richColors /> 
           <Providers>
             <NavBar session={session} />
             <main>{children}</main>
