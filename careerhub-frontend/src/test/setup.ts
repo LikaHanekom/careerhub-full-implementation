@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { vi } from "vitest";
+import { vi, beforeEach } from "vitest";
 
 //global mock applied to every test file
 vi.mock("next/navigation", () => ({
@@ -14,3 +14,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/",
 }));
+
+beforeEach(() => {
+  localStorage.clear();
+});

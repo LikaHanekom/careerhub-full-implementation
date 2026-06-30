@@ -188,11 +188,13 @@ export function ApplicationWizard({
   // ── Navigation ──────────────────────────────────────────────────────────────
   const handleNext = async () => {
     // Gate: must be signed in as candidate to pass step 1
+    //to trigger test5 to not pass-comment out the line below
     if (step === 1 && !applicantId) return; // inline message handles this
 
     const fields = STEP_FIELDS[step];
     const valid = await trigger(fields);
     if (valid) setStep((s) => s + 1);
+    //setStep((s) => s + 1);
   };
 
   const handleBack = () => {
@@ -285,6 +287,7 @@ export function ApplicationWizard({
         ════════════════════════════════════════════ */}
         {step === 1 && (
           <div className="space-y-4">
+             <h4 className="text-lg font-semibold">Your Details</h4>
             {/* Full Name */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium mb-1">
@@ -361,6 +364,7 @@ export function ApplicationWizard({
         ════════════════════════════════════════════ */}
         {step === 2 && (
           <div className="space-y-4">
+            <h4 className="text-lg font-semibold">Your Application</h4>
             {/* Cover Letter */}
             <div>
               <label htmlFor="coverLetter" className="block text-sm font-medium mb-1">
@@ -431,6 +435,7 @@ export function ApplicationWizard({
         ════════════════════════════════════════════ */}
         {step === 3 && (
           <div className="space-y-4">
+            <h4 className="text-lg font-semibold">Review & Submit</h4>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Please review your application before submitting.
             </p>
@@ -549,6 +554,7 @@ function ReviewRow({
   multiline?: boolean;
 }) {
   const display = value && value.trim() !== '' ? value : 'Not provided';
+  //const display = value; //test
   const isEmpty = display === 'Not provided';
 
   return (
