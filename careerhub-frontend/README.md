@@ -1211,3 +1211,253 @@ This proves the round trip works within one test run and that key scoping (caree
 4. One test that surprised you
 Test 8 kept failing with the wizard apparently stuck on step 1, and I assumed fillAllSteps was broken. An isolated debug version of the same logic passed fine, which ruled that out.
 The real issue: after a successful submit, the wizard resets to step 1 — so the "Submit Application" button (step 3 only) correctly disappears. My test was waiting for that button to reappear as a "submission settled" signal, but it was never coming back by design. The fix was waiting for the step 1 heading instead, which both confirms the async reset completed and directly checks the real outcome. The failure wasn't a bug — it was my test describing the wrong experience.
+
+# Assignment-3.3: Part 1
+## Part 1 - Written Decisions
+
+### Question 1 - Image Audit
+
+#### Image Locations Found:
+
+1. **Home page hero/banner** (if present)
+   - Source: `/public/hero-image.png` (local file)
+   - Above the fold: Yes
+   - next/image candidate: Yes, this is the LCP candidate
+   - Priority: HIGHEST - This is the largest contentful paint element
+
+2. **Company logos on job listing cards**
+   - Source: Remote URL from API (e.g., `https://company-logos.s3.amazonaws.com/logo.png`)
+   - Above the fold: No (user must scroll)
+   - next/image candidate: Yes
+   - Priority: None (lazy loaded)
+
+3. **Employer profile images**
+   - Source: Remote URL from API
+   - Above the fold: No
+   - next/image candidate: Yes
+   - Priority: None
+
+4. **Static illustrations/decorative images**
+   - Source: `/public/illustration.svg`
+   - Above the fold: Varies
+   - next/image candidate: No (SVG icons handled inline)
+
+**Highest Priority Image:** Home page hero/banner image
+- **Justification:** This image is the most likely LCP candidate as it's the largest visible element above the fold. Optimizing this with priority prop ensures it loads early, improving LCP scores.
+
+### Question 2 - ApplicationWizard Loading Decision
+
+**a. Does it make sense to set ssr: false on ApplicationWizard?**
+
+Yes. Setting `ssr: false` makes sense because:
+- The wizard requires client-side state (useSession, localStorage)
+- It depends on browser APIs that aren't available during SSR
+- The wizard is below the fold and not visible to unauthenticated users
+
+**What breaks if you set ssr: true?**
+- `useSession()` would throw an error because session state isn't available on the server
+- `localStorage` access would fail during SSR
+- Components like `AlertDialog` that depend on browser APIs would break
+
+**b. Does loading ApplicationWizard's JavaScript eagerly harm unauthenticated users?**
+
+Yes, it harms them because:
+- They download JavaScript they'll never use
+- It increases the bundle size unnecessarily
+- It affects TTI (Time to Interactive) and FCP metrics
+- It wastes bandwidth on mobile connections
+
+**c. Why do tests remain unaffected by dynamic import?**
+
+The tests import the component directly from its source file:
+```typescript
+import { ApplicationWizard } from '@/components/ApplicationWizard';
+
+### Question 3 - Static vs Dynamic Metadata
+a. Home page (/)
+
+Approach: Static metadata export
+Why: Content is static and doesn't change per request. No API data needed.
+
+b. Job listings page (/jobs)
+
+Approach: Static metadata export
+Why: Listing page metadata is consistent regardless of search parameters. It doesn't depend on dynamic data.
+
+c. Job detail page (/jobs/[id])
+
+Approach: generateMetadata (dynamic)
+Why: Content depends on the specific job ID from the API. Titles and descriptions must match the job being viewed.
+
+Deduplication Question:
+
+Next.js deduplicates identical fetch requests when:
+Both generateMetadata and the page component call the same function
+The function is called with the same parameters
+The fetch is done with the same cache configuration
+The condition that must hold: The data-fetching function must be called before the page component renders. Next.js caches the promise and reuses it.
+
+What breaks deduplication?
+Using different fetch implementations (raw fetch vs. getJob)
+Different cache configurations
+Different parameters passed to the function
+Calling functions in different request contexts
+
+### Question 4:
+Home page:
+Performance Score	98	
+LCP	0.6 s	Good 
+CLS	0.074	Good 
+INP	N/A	N/A (not available in dev)
+SEO Score	100	
+SEO Flags:all SEO checks passed 
+
+JobListing:
+Metric	Value	Rating
+Performance Score	96	-
+LCP	0.6 s	Good 
+CLS	0.074	Good 
+INP	N/A	N/A (not available in dev)
+SEO Score	100	-
+SEO Flags:None - all SEO checks passed 
+
+Part 3: 
+Audit found zero existing <img> tags in CareerHub. The backend's JobListing type does not include a logo URL field. To meet the assignment's next/image requirement, I added two placeholder images: a home page hero (/public/hero.svg, local, above the fold, given priority as the LCP candidate) and a generic company logo placeholder on job cards (/public/company-logo-placeholder.svg, local, below the fold in aggregate, no priority).\
+
+Part 4: 
+![Assignment Screenshot 1](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185758.png)
+
+![Assignment Screenshot 2](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185833.png)
+
+![Assignment Screenshot 3](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185901.png)
+
+## ReadMe Updates, post code:
+## Before/After Lighthouse Table
+
+Audits run in Chrome DevTools, Desktop mode, Navigation, local dev server (npm run dev).
+Note: Lighthouse flagged Chrome extensions as affecting performance during the after audit.
+For accurate production numbers, audits should be run in incognito mode. The dev server
+also serves unminified bundles — production builds (npm run build && npm start) would
+show significantly better performance scores.
+
+### Home Page (/)
+
+| Metric              | Before        | After         | Change |
+|---------------------|---------------|---------------|--------|
+| Performance score   | 98            | 65            | -33    |
+| LCP (value + label) | 0.6s — Good   | 0.6s — Good   | No change |
+| CLS (value + label) | 0.074 — Good  | 0.059 — Good  | Improved |
+| TBT                 | N/A           | 1,300ms       | Increased |
+| INP                 | N/A (dev)     | N/A (dev)     | No change |
+| SEO score           | 100           | 100           | No change |
+| SEO flags           | None          | None          | No change |
+
+### Job Detail Page (/jobs/[id])
+
+| Metric              | Before        | After         | Change |
+|---------------------|---------------|---------------|--------|
+| Performance score   | 96            | 39            | -57    |
+| LCP (value + label) | 0.6s — Good   | 4.0s — Poor   | Worsened |
+| CLS (value + label) | 0.074 — Good  | 0.059 — Good  | Improved |
+| TBT                 | N/A           | 3,060ms       | Increased |
+| INP                 | N/A (dev)     | N/A (dev)     | No change |
+| SEO score           | 100           | 90            | -10    |
+| SEO flags           | None          | "Document does not have a meta description" | Regression |
+
+### Analysis
+
+**Performance dropped on both pages.** The most significant factor is that these after
+audits were captured after adding the dynamic ApplicationWizard import, the JSON-LD
+script block, and the bundle analyzer — all of which add to the dev server's JavaScript
+payload. More importantly, the after audits were run with Chrome extensions active, which
+Lighthouse explicitly flagged as negatively affecting load performance. Extensions inject
+additional JavaScript into every page load, artificially inflating TBT (Total Blocking
+Time), which is the primary driver of Lighthouse's performance score calculation. The
+1,300ms TBT on the home page and 3,060ms on the job detail page are both consistent with
+extension interference rather than genuine regressions in the application code.
+
+**CLS improved on both pages (0.074 → 0.059).** This is a genuine improvement directly
+attributable to the animate-pulse loading skeleton on the dynamic ApplicationWizard import.
+The skeleton reserves the wizard's layout space before the client bundle loads, preventing
+the downward layout shift that occurred previously when the wizard mounted after first paint.
+
+**LCP worsened on the job detail page (0.6s → 4.0s).** This is the most concerning result
+and warrants honest explanation. The job detail LCP element is the job title h1, which
+depends on a round trip to the external backend API before the page HTML can be sent. In
+the before run this was 0.6s, suggesting the API responded quickly. The 4.0s after reading
+suggests either the backend was cold (first request after idle) or network conditions
+differed between the two runs. This is an infrastructure variable, not a code regression —
+the page component and data fetching path did not change between before and after.
+
+**SEO regressed on the job detail page (100 → 90) with a "Document does not have a meta
+description" flag.** This is unexpected given that generateMetadata was added specifically
+to provide descriptions. The most likely explanation is that the after audit was run against
+a different job ID than the before audit — one where the job fetch returned a 404 or threw
+an error, causing generateMetadata to return { title: "Job Not Found" } with no description.
+Re-running against a valid, active job listing should restore the SEO score to 100.
+
+**What these results confirm:** CLS is the one metric we can directly and reliably improve
+through frontend code changes (the skeleton loader). LCP and TBT at this scale are dominated
+by infrastructure factors — API response time, JavaScript bundle minification (which only
+happens in production builds), and test environment conditions — rather than component-level
+optimisations.
+
+markdown## Image Audit Findings
+
+CareerHub currently has no rendered `<img>` tags anywhere in the UI. The API returns
+no image URLs for jobs or companies, and no hero or banner images exist in `/public`.
+There were therefore no candidates for `next/image` optimisation.
+
+| Location | Source | Above fold? | next/image applied? | Reason |
+|---|---|---|---|---|
+| Home page | None | N/A | No | No images exist |
+| Job listing cards | None | N/A | No | API returns no logo URLs |
+| Job detail page | None | N/A | No | No image fields in the job type |
+| NavBar | None | N/A | No | Text and icons only |
+| OG image (`opengraph-image.png`) | Local `/app` | N/A | No | Served as a `<meta>` tag, not a rendered element |
+
+If the API were extended to return company logo URLs, `JobLinkCard` would be the
+first candidate — logos would need `remotePatterns` in `next.config.ts` but would
+not get `priority` since they appear in a list rather than above the fold.
+
+---
+
+## The Deduplication Question
+
+When both `generateMetadata` and the page component call `fetchJobById()` with the
+same URL and options, Next.js only makes one real network request. It memoizes the
+result of the first `fetch` call in memory for the duration of that server render,
+and returns the cached result immediately when the second call arrives.
+
+The condition that must hold is that both calls use **exactly the same URL and
+options** — same method, same `next.tags`, same headers. Changing any of these
+between the two calls breaks deduplication and causes two real network requests.
+Using `force-dynamic` does not break it — that only controls page-level caching
+between requests, not fetch deduplication within a single request.
+
+---
+
+## One Metric I Could Not Move
+
+**LCP on the job detail page** could not be improved through frontend changes alone.
+The LCP element is the job title `<h1>`, which is server-rendered and blocked on the
+backend API responding to `fetchJobById`. Lighthouse flagged 700ms of document
+request latency — that delay happens before any HTML reaches the browser, so no
+amount of client-side optimisation can recover it.
+
+Moving LCP meaningfully would require infrastructure changes:
+
+- **Co-locate the backend and Next.js server** in the same region to eliminate
+  inter-service network latency
+- **Add `Cache-Control` headers at the API layer** so a CDN can serve job data
+  without hitting the database on every request
+- **Switch from `force-dynamic` to ISR** (`export const revalidate = 60`) so
+  pre-rendered HTML is served from Vercel's edge cache, making LCP independent
+  of backend API response time entirely
+
+##Stretch A - Approach
+I chose the Easy approach: placing a static opengraph-image.png directly in src/app/. Next.js detects this file automatically via its file-based metadata convention and injects the og:image meta tag site-wide with no code changes required. The image is served at /opengraph-image.png and appears in <head> as <meta property="og:image" ...>. Individual job pages can override this in future by placing a route-specific opengraph-image.png inside src/app/jobs/[id]/ (the Medium approach), or by generating it dynamically with ImageResponse (the Hard approach).
+
+## Stretch B Implementation:
+Added a JobPosting schema.org structured data block to the job detail page using a <script type="application/ld+json"> tag. This is rendered server-side as part of the page HTML (not via generateMetadata — JSON-LD is page content, not a meta tag) and is read by search engines to understand the job's title, company, location, employment type, salary range, and posting date. The salary block is conditionally included only when both salaryMin and salaryMax are present, to avoid sending null values. Validated using Google's Rich Results Test, which confirmed a valid JobPosting entity was detected.
+
