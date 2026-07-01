@@ -1330,3 +1330,134 @@ Part 4:
 ![Assignment Screenshot 2](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185833.png)
 
 ![Assignment Screenshot 3](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185901.png)
+
+## ReadMe Updates, post code:
+## Before/After Lighthouse Table
+
+Audits run in Chrome DevTools, Desktop mode, Navigation, local dev server (npm run dev).
+Note: Lighthouse flagged Chrome extensions as affecting performance during the after audit.
+For accurate production numbers, audits should be run in incognito mode. The dev server
+also serves unminified bundles — production builds (npm run build && npm start) would
+show significantly better performance scores.
+
+### Home Page (/)
+
+| Metric              | Before        | After         | Change |
+|---------------------|---------------|---------------|--------|
+| Performance score   | 98            | 65            | -33    |
+| LCP (value + label) | 0.6s — Good   | 0.6s — Good   | No change |
+| CLS (value + label) | 0.074 — Good  | 0.059 — Good  | Improved |
+| TBT                 | N/A           | 1,300ms       | Increased |
+| INP                 | N/A (dev)     | N/A (dev)     | No change |
+| SEO score           | 100           | 100           | No change |
+| SEO flags           | None          | None          | No change |
+
+### Job Detail Page (/jobs/[id])
+
+| Metric              | Before        | After         | Change |
+|---------------------|---------------|---------------|--------|
+| Performance score   | 96            | 39            | -57    |
+| LCP (value + label) | 0.6s — Good   | 4.0s — Poor   | Worsened |
+| CLS (value + label) | 0.074 — Good  | 0.059 — Good  | Improved |
+| TBT                 | N/A           | 3,060ms       | Increased |
+| INP                 | N/A (dev)     | N/A (dev)     | No change |
+| SEO score           | 100           | 90            | -10    |
+| SEO flags           | None          | "Document does not have a meta description" | Regression |
+
+### Analysis
+
+**Performance dropped on both pages.** The most significant factor is that these after
+audits were captured after adding the dynamic ApplicationWizard import, the JSON-LD
+script block, and the bundle analyzer — all of which add to the dev server's JavaScript
+payload. More importantly, the after audits were run with Chrome extensions active, which
+Lighthouse explicitly flagged as negatively affecting load performance. Extensions inject
+additional JavaScript into every page load, artificially inflating TBT (Total Blocking
+Time), which is the primary driver of Lighthouse's performance score calculation. The
+1,300ms TBT on the home page and 3,060ms on the job detail page are both consistent with
+extension interference rather than genuine regressions in the application code.
+
+**CLS improved on both pages (0.074 → 0.059).** This is a genuine improvement directly
+attributable to the animate-pulse loading skeleton on the dynamic ApplicationWizard import.
+The skeleton reserves the wizard's layout space before the client bundle loads, preventing
+the downward layout shift that occurred previously when the wizard mounted after first paint.
+
+**LCP worsened on the job detail page (0.6s → 4.0s).** This is the most concerning result
+and warrants honest explanation. The job detail LCP element is the job title h1, which
+depends on a round trip to the external backend API before the page HTML can be sent. In
+the before run this was 0.6s, suggesting the API responded quickly. The 4.0s after reading
+suggests either the backend was cold (first request after idle) or network conditions
+differed between the two runs. This is an infrastructure variable, not a code regression —
+the page component and data fetching path did not change between before and after.
+
+**SEO regressed on the job detail page (100 → 90) with a "Document does not have a meta
+description" flag.** This is unexpected given that generateMetadata was added specifically
+to provide descriptions. The most likely explanation is that the after audit was run against
+a different job ID than the before audit — one where the job fetch returned a 404 or threw
+an error, causing generateMetadata to return { title: "Job Not Found" } with no description.
+Re-running against a valid, active job listing should restore the SEO score to 100.
+
+**What these results confirm:** CLS is the one metric we can directly and reliably improve
+through frontend code changes (the skeleton loader). LCP and TBT at this scale are dominated
+by infrastructure factors — API response time, JavaScript bundle minification (which only
+happens in production builds), and test environment conditions — rather than component-level
+optimisations.
+
+markdown## Image Audit Findings
+
+CareerHub currently has no rendered `<img>` tags anywhere in the UI. The API returns
+no image URLs for jobs or companies, and no hero or banner images exist in `/public`.
+There were therefore no candidates for `next/image` optimisation.
+
+| Location | Source | Above fold? | next/image applied? | Reason |
+|---|---|---|---|---|
+| Home page | None | N/A | No | No images exist |
+| Job listing cards | None | N/A | No | API returns no logo URLs |
+| Job detail page | None | N/A | No | No image fields in the job type |
+| NavBar | None | N/A | No | Text and icons only |
+| OG image (`opengraph-image.png`) | Local `/app` | N/A | No | Served as a `<meta>` tag, not a rendered element |
+
+If the API were extended to return company logo URLs, `JobLinkCard` would be the
+first candidate — logos would need `remotePatterns` in `next.config.ts` but would
+not get `priority` since they appear in a list rather than above the fold.
+
+---
+
+## The Deduplication Question
+
+When both `generateMetadata` and the page component call `fetchJobById()` with the
+same URL and options, Next.js only makes one real network request. It memoizes the
+result of the first `fetch` call in memory for the duration of that server render,
+and returns the cached result immediately when the second call arrives.
+
+The condition that must hold is that both calls use **exactly the same URL and
+options** — same method, same `next.tags`, same headers. Changing any of these
+between the two calls breaks deduplication and causes two real network requests.
+Using `force-dynamic` does not break it — that only controls page-level caching
+between requests, not fetch deduplication within a single request.
+
+---
+
+## One Metric I Could Not Move
+
+**LCP on the job detail page** could not be improved through frontend changes alone.
+The LCP element is the job title `<h1>`, which is server-rendered and blocked on the
+backend API responding to `fetchJobById`. Lighthouse flagged 700ms of document
+request latency — that delay happens before any HTML reaches the browser, so no
+amount of client-side optimisation can recover it.
+
+Moving LCP meaningfully would require infrastructure changes:
+
+- **Co-locate the backend and Next.js server** in the same region to eliminate
+  inter-service network latency
+- **Add `Cache-Control` headers at the API layer** so a CDN can serve job data
+  without hitting the database on every request
+- **Switch from `force-dynamic` to ISR** (`export const revalidate = 60`) so
+  pre-rendered HTML is served from Vercel's edge cache, making LCP independent
+  of backend API response time entirely
+
+##Stretch A - Approach
+I chose the Easy approach: placing a static opengraph-image.png directly in src/app/. Next.js detects this file automatically via its file-based metadata convention and injects the og:image meta tag site-wide with no code changes required. The image is served at /opengraph-image.png and appears in <head> as <meta property="og:image" ...>. Individual job pages can override this in future by placing a route-specific opengraph-image.png inside src/app/jobs/[id]/ (the Medium approach), or by generating it dynamically with ImageResponse (the Hard approach).
+
+## Stretch B Implementation:
+Added a JobPosting schema.org structured data block to the job detail page using a <script type="application/ld+json"> tag. This is rendered server-side as part of the page HTML (not via generateMetadata — JSON-LD is page content, not a meta tag) and is read by search engines to understand the job's title, company, location, employment type, salary range, and posting date. The salary block is conditionally included only when both salaryMin and salaryMax are present, to avoid sending null values. Validated using Google's Rich Results Test, which confirmed a valid JobPosting entity was detected.
+

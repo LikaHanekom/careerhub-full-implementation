@@ -100,6 +100,44 @@ export default async function JobDetailPage({
           </div>
         </div>
 
+        {/* JSON-LD structured data — not visible, read by search engines */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "JobPosting",
+            "title": job.title,
+            "description": job.description || `${job.title} at ${job.company} in ${job.location}.`,
+            "datePosted": job.postedAt,
+            "hiringOrganization": {
+              "@type": "Organization",
+              "name": job.company,
+            },
+            "jobLocation": {
+              "@type": "Place",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": job.location,
+              },
+            },
+            "employmentType": job.employmentType.toUpperCase(),
+            ...(job.salaryMin != null && job.salaryMax != null && {
+              "baseSalary": {
+                "@type": "MonetaryAmount",
+                "currency": "ZAR",
+                "value": {
+                  "@type": "QuantitativeValue",
+                  "minValue": job.salaryMin,
+                  "maxValue": job.salaryMax,
+                  "unitText": "MONTH",
+                },
+              },
+            }),
+          }),
+        }}
+      />
+      
         {renderApplicationSection()}
       </div>
     </main>
