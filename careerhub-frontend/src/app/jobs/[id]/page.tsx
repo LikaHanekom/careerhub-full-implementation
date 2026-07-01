@@ -5,8 +5,30 @@ import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { fetchJobById } from '@/lib/api';
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/auth";
+import type { Metadata } from "next";
+
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const job = await fetchJobById(params.id);
+
+  if (!job) {
+    return { title: "Job Not Found" };
+  }
+
+  const description = `Apply for ${job.title} at ${job.company} in ${job.location}.`;
+
+  return {
+    title: job.title,
+    description,
+    openGraph: {
+      title: job.title,
+      description,
+      type: "website",
+    },
+  };
+}
 
 export default async function JobDetailPage({
   params,
