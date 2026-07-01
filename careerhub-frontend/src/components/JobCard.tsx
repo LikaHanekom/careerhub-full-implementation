@@ -2,6 +2,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import { JobListing } from "../types";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface JobCardProps {
   job: JobListing;
@@ -33,6 +34,13 @@ export default function JobCard({ job, isSelected, onSelect }: JobCardProps) {
     >
       {/* Header */}
       <div className="mb-2">
+        <Image
+          src="/company-logo-placeholder.svg"
+          alt={`${job.company} logo`}
+          width={48}
+          height={48}
+          className="rounded"
+        />
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 transition-colors">
           {job.title}
         </h2>

@@ -1,10 +1,19 @@
 'use client';
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 p-8 dark:bg-gray-900">
       <div className="mx-auto max-w-3xl text-center">
+        <Image
+          src="/hero.svg"
+          alt="CareerHub — find your next role"
+          width={1200}
+          height={600}
+          priority
+          className="mx-auto mb-8 rounded-lg"
+        />
         <h1 className="mb-4 text-4xl font-bold text-gray-900 dark:text-gray-100">
           Welcome to CareerHub
         </h1>
