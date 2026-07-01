@@ -1322,4 +1322,11 @@ SEO Score	100	-
 SEO Flags:None - all SEO checks passed 
 
 Part 3: 
-Audit found zero existing <img> tags in CareerHub. The backend's JobListing type does not include a logo URL field. To meet the assignment's next/image requirement, I added two placeholder images: a home page hero (/public/hero.svg, local, above the fold, given priority as the LCP candidate) and a generic company logo placeholder on job cards (/public/company-logo-placeholder.svg, local, below the fold in aggregate, no priority).
+Audit found zero existing <img> tags in CareerHub. The backend's JobListing type does not include a logo URL field. To meet the assignment's next/image requirement, I added two placeholder images: a home page hero (/public/hero.svg, local, above the fold, given priority as the LCP candidate) and a generic company logo placeholder on job cards (/public/company-logo-placeholder.svg, local, below the fold in aggregate, no priority).\
+
+Part 4: 
+![Assignment Screenshot 1](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185758.png)
+
+![Assignment Screenshot 2](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185833.png)
+
+![Assignment Screenshot 3](./Assets/Assignment-3.3/Screenshot%202026-07-01%20185901.png)

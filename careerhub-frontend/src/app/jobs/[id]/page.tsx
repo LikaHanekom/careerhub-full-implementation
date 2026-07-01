@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import ApplicationWizardLoader from "@/components/ApplicationWizardLoader";
 import { ApplicationWizard } from "@/components/ApplicationWizard";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { fetchJobById } from '@/lib/api';
@@ -53,25 +54,24 @@ export default async function JobDetailPage({
   const role = session?.user?.role;
 
   const renderApplicationSection = () => {
-  if (!job.isActive) {
+    if (!job.isActive) {
+      return (
+        <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            This position is no longer accepting applications.
+          </p>
+        </div>
+      );
+    }
     return (
-      <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-          This position is no longer accepting applications.
-        </p>
-      </div>
+      <ApplicationWizardLoader
+        jobId={job.id}
+        jobTitle={job.title}
+        applicantId={session?.user?.id ?? null}
+        isEmployer={role === 'employer'}
+      />
     );
-  }
-  return (
-    <ApplicationWizard
-      jobId={job.id}
-      jobTitle={job.title}
-      applicantId={session?.user?.id ?? null}
-      isEmployer={role === 'employer'}
-    />
-  );
-};
-
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 dark:bg-gray-900">
