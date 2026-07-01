@@ -10,24 +10,29 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const job = await fetchJobById(params.id);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
 
-  if (!job) {
-    return { title: "Job Not Found" };
-  }
+  try {
+    const job = await fetchJobById(id, { next: { tags: ["jobs"] } });
+    const description = `Apply for ${job.title} at ${job.company} in ${job.location}.`;
 
-  const description = `Apply for ${job.title} at ${job.company} in ${job.location}.`;
-
-  return {
-    title: job.title,
-    description,
-    openGraph: {
+    return {
       title: job.title,
       description,
-      type: "website",
-    },
-  };
+      openGraph: {
+        title: job.title,
+        description,
+        type: "website",
+      },
+    };
+  } catch {
+    return { title: "Job Not Found" };
+  }
 }
 
 export default async function JobDetailPage({
@@ -37,13 +42,14 @@ export default async function JobDetailPage({
 }) {
   const { id } = await params;
 
-  const [job, session] = await Promise.all([
-    fetchJobById(id, { next: { tags: ["jobs"] } }),
-    getServerSession(authConfig),
-  ]);
+  let job;
+  try {
+    job = await fetchJobById(id, { next: { tags: ["jobs"] } });
+  } catch {
+    notFound();
+  }
 
-  if (!job) notFound();
-
+  const session = await getServerSession(authConfig);
   const role = session?.user?.role;
 
   const renderApplicationSection = () => {
