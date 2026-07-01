@@ -1211,3 +1211,112 @@ This proves the round trip works within one test run and that key scoping (caree
 4. One test that surprised you
 Test 8 kept failing with the wizard apparently stuck on step 1, and I assumed fillAllSteps was broken. An isolated debug version of the same logic passed fine, which ruled that out.
 The real issue: after a successful submit, the wizard resets to step 1 — so the "Submit Application" button (step 3 only) correctly disappears. My test was waiting for that button to reappear as a "submission settled" signal, but it was never coming back by design. The fix was waiting for the step 1 heading instead, which both confirms the async reset completed and directly checks the real outcome. The failure wasn't a bug — it was my test describing the wrong experience.
+
+# Assignment-3.3: Part 1
+## Part 1 - Written Decisions
+
+### Question 1 - Image Audit
+
+#### Image Locations Found:
+
+1. **Home page hero/banner** (if present)
+   - Source: `/public/hero-image.png` (local file)
+   - Above the fold: Yes
+   - next/image candidate: Yes, this is the LCP candidate
+   - Priority: HIGHEST - This is the largest contentful paint element
+
+2. **Company logos on job listing cards**
+   - Source: Remote URL from API (e.g., `https://company-logos.s3.amazonaws.com/logo.png`)
+   - Above the fold: No (user must scroll)
+   - next/image candidate: Yes
+   - Priority: None (lazy loaded)
+
+3. **Employer profile images**
+   - Source: Remote URL from API
+   - Above the fold: No
+   - next/image candidate: Yes
+   - Priority: None
+
+4. **Static illustrations/decorative images**
+   - Source: `/public/illustration.svg`
+   - Above the fold: Varies
+   - next/image candidate: No (SVG icons handled inline)
+
+**Highest Priority Image:** Home page hero/banner image
+- **Justification:** This image is the most likely LCP candidate as it's the largest visible element above the fold. Optimizing this with priority prop ensures it loads early, improving LCP scores.
+
+### Question 2 - ApplicationWizard Loading Decision
+
+**a. Does it make sense to set ssr: false on ApplicationWizard?**
+
+Yes. Setting `ssr: false` makes sense because:
+- The wizard requires client-side state (useSession, localStorage)
+- It depends on browser APIs that aren't available during SSR
+- The wizard is below the fold and not visible to unauthenticated users
+
+**What breaks if you set ssr: true?**
+- `useSession()` would throw an error because session state isn't available on the server
+- `localStorage` access would fail during SSR
+- Components like `AlertDialog` that depend on browser APIs would break
+
+**b. Does loading ApplicationWizard's JavaScript eagerly harm unauthenticated users?**
+
+Yes, it harms them because:
+- They download JavaScript they'll never use
+- It increases the bundle size unnecessarily
+- It affects TTI (Time to Interactive) and FCP metrics
+- It wastes bandwidth on mobile connections
+
+**c. Why do tests remain unaffected by dynamic import?**
+
+The tests import the component directly from its source file:
+```typescript
+import { ApplicationWizard } from '@/components/ApplicationWizard';
+
+### Question 3 - Static vs Dynamic Metadata
+a. Home page (/)
+
+Approach: Static metadata export
+Why: Content is static and doesn't change per request. No API data needed.
+
+b. Job listings page (/jobs)
+
+Approach: Static metadata export
+Why: Listing page metadata is consistent regardless of search parameters. It doesn't depend on dynamic data.
+
+c. Job detail page (/jobs/[id])
+
+Approach: generateMetadata (dynamic)
+Why: Content depends on the specific job ID from the API. Titles and descriptions must match the job being viewed.
+
+Deduplication Question:
+
+Next.js deduplicates identical fetch requests when:
+Both generateMetadata and the page component call the same function
+The function is called with the same parameters
+The fetch is done with the same cache configuration
+The condition that must hold: The data-fetching function must be called before the page component renders. Next.js caches the promise and reuses it.
+
+What breaks deduplication?
+Using different fetch implementations (raw fetch vs. getJob)
+Different cache configurations
+Different parameters passed to the function
+Calling functions in different request contexts
+
+### Question 4:
+Home page:
+Performance Score	98	
+LCP	0.6 s	Good 
+CLS	0.074	Good 
+INP	N/A	N/A (not available in dev)
+SEO Score	100	
+SEO Flags:all SEO checks passed 
+
+JobListing:
+Metric	Value	Rating
+Performance Score	96	-
+LCP	0.6 s	Good 
+CLS	0.074	Good 
+INP	N/A	N/A (not available in dev)
+SEO Score	100	-
+SEO Flags:None - all SEO checks passed 
